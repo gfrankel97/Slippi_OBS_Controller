@@ -10,5 +10,4 @@
                 |- player_one/
                     ...
                 |- player_four/
-
     ```
