@@ -25,7 +25,7 @@ watcher.on('change', (path) => {
       console.log(`New file at: ${path}`);
       game = new SlippiGame.default(path);
       const firstFrame = game.getLatestFrame();
-      this.activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
+      activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
       gameByPath[path] = {
         game: game,
         state: {
@@ -106,14 +106,19 @@ watcher.on('change', (path) => {
 
 
 //TO DO: NEED TO MAKE THIS 4P COMPATIBLE
-function update_stream_assets_icon(game_settings) {
+const update_stream_assets_icon = (game_settings) => {
   if(!game_settings) {
     return;
   }
-  var character_one_name = SlippiGame.characters.getCharacterName(game_settings.players[0].characterId);
-  var character_one_color = SlippiGame.characters.getCharacterColorName(game_settings.players[0].characterId, game_settings.players[0].characterColor);
-  var character_two_name = SlippiGame.characters.getCharacterName(game_settings.players[1].characterId);
-  var character_two_color = SlippiGame.characters.getCharacterColorName(game_settings.players[1].characterId, game_settings.players[1].characterColor);
+
+  let player1 = game_settings.players[0];
+  let player2 = game_settings.players[1];
+  let { getCharacterName, getCharacterColorName } = SlippiGame.characters;
+
+  let character_one_name = getCharacterName(player1.characterId);
+  let character_one_color = getCharacterColorName(player1.characterId, player1.characterColor);
+  let character_two_name = getCharacterName(player2.characterId);
+  let character_two_color = getCharacterColorName(player2.characterId, player2.characterColor);
 
 
   //TO DO: Check for file and make sure it exists, if color doesn't exist, default to default
