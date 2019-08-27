@@ -1,0 +1,1 @@
+call node C:\stream_scripts\realtime_slippi_parser.js
