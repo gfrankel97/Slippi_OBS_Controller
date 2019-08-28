@@ -25,7 +25,10 @@ watcher.on('change', (path) => {
       console.log(`New file at: ${path}`);
       game = new SlippiGame.default(path);
       const firstFrame = game.getLatestFrame();
-      activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
+      if(firstFrame.players) {
+        // need to set flag and make sure this gets set properly
+        activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
+      }
       gameByPath[path] = {
         game: game,
         state: {
