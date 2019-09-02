@@ -56,7 +56,7 @@ function get_clip_information() {
 }
 
 function create_clip() {
-    process_reader.question(`Hit Enter to clip it. `, (name) => {
+    process_reader.question(`Hit Enter to clip it. `, () => {
         get_clip_information();
     })
 }
