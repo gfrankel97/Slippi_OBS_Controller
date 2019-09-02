@@ -1,0 +1,9 @@
+{
+  "name": "slippi-obs-controller",
+  "dependencies": {
+    "chokidar": "^3.0.2",
+    "fs": "0.0.1-security",
+    "lodash": "^4.17.15",
+    "slp-parser-js": "^3.0.0"
+  }
+}

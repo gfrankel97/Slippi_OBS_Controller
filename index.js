@@ -101,7 +101,7 @@ watcher.on('change', (path) => {
     update_stream_assets_stats(stats);
   }
 
-  update_stream_assets_icon(settings);
+ update_stream_assets_icon(settings);
 
   // console.log(`Read took: ${Date.now() - start} ms`);
 });
@@ -109,19 +109,19 @@ watcher.on('change', (path) => {
 
 
 //TO DO: NEED TO MAKE THIS 4P COMPATIBLE
-const update_stream_assets_icon = (game_settings) => {
-  if(!game_settings) {
+update_stream_assets_icon = (game_settings) => {
+  if (!game_settings) {
     return;
   }
 
-  let player1 = game_settings.players[0];
-  let player2 = game_settings.players[1];
-  let { getCharacterName, getCharacterColorName } = SlippiGame.characters;
+  const player1 = game_settings.players[0];
+  const player2 = game_settings.players[1];
+  const { getCharacterName, getCharacterColorName } = SlippiGame.characters;
 
-  let character_one_name = getCharacterName(player1.characterId);
-  let character_one_color = getCharacterColorName(player1.characterId, player1.characterColor);
-  let character_two_name = getCharacterName(player2.characterId);
-  let character_two_color = getCharacterColorName(player2.characterId, player2.characterColor);
+  const character_one_name = getCharacterName(player1.characterId);
+  const character_one_color = getCharacterColorName(player1.characterId, player1.characterColor);
+  const character_two_name = getCharacterName(player2.characterId);
+  const character_two_color = getCharacterColorName(player2.characterId, player2.characterColor);
 
 
   //TO DO: Check for file and make sure it exists, if color doesn't exist, default to default
@@ -142,25 +142,25 @@ const update_stream_assets_icon = (game_settings) => {
       script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.PLAYER_TWO_ICON_FILE_NAME);
 }
 
-function update_stream_assets_scene(scene) {
-    setTimeout(function() {
+update_stream_assets_scene = scene => {
+    setTimeout(() => {
       console.log("Switching to scene: ", scene);
       fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
-    }.bind(this), script_settings.TIME_TO_SWITCH_SCENES);
+    }, script_settings.TIME_TO_SWITCH_SCENES);
 }
 
 //TO DO: NEED TO MAKE THIS 4P COMPATIBLE
-function update_stream_assets_stats(stats) {
+update_stream_assets_stats = stats => {
   //keys: stocks combos actionCounts conversions lastFrame playableFrameCount overall gameComplete
-  var port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
+  const port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
 
-  for(var player in stats.overall) {
-    for(stat in stats.overall[player]) {
-      var stat_value = (typeof stats.overall[player][stat] == 'object' ? stats.overall[player][stat].ratio : stats.overall[player][stat]);
-      if(typeof stat_value == "number") {
+  for (let player in stats.overall) {
+    for (stat in stats.overall[player]) {
+      let stat_value = (typeof stats.overall[player][stat] == 'object' ? stats.overall[player][stat].ratio : stats.overall[player][stat]);
+      if (typeof stat_value == "number") {
         stat_value = Math.round(stat_value * 10) / 10;
       }
-      if(stat_value) {
+      if (stat_value) {
         fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH
         + "stats\\"
           + port_to_folder_name[player]
