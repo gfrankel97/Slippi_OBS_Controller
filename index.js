@@ -97,11 +97,11 @@ watcher.on('change', (path) => {
 
     const lrasText = gameEnd.gameEndMethod === 7 ? ` | Quitter Index: ${gameEnd.lrasInitiatorIndex}` : "";
     console.log(`[Game Complete] Type: ${endMessage}${lrasText}`);
-    update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
+    update_stream_assets_icon(settings);
     update_stream_assets_stats(stats);
+    update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
   }
 
-  update_stream_assets_icon(settings);
 
   // console.log(`Read took: ${Date.now() - start} ms`);
 });
@@ -123,7 +123,8 @@ const update_stream_assets_icon = (game_settings) => {
   let character_two_name = getCharacterName(player2.characterId);
   let character_two_color = getCharacterColorName(player2.characterId, player2.characterColor);
 
-
+  console.log(character_one_name.toLowerCase(), character_one_color.toLowerCase())
+  console.log(character_two_name.toLowerCase(), character_two_color.toLowerCase())
   //TO DO: Check for file and make sure it exists, if color doesn't exist, default to default
   fs.copyFileSync(
     script_settings.CHARACTER_ICON_SOURCE
@@ -154,6 +155,7 @@ function update_stream_assets_stats(stats) {
   //keys: stocks combos actionCounts conversions lastFrame playableFrameCount overall gameComplete
   var port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
 
+  calculate_self_destructs(stats);
   for(var player in stats.overall) {
     for(stat in stats.overall[player]) {
       var stat_value = (typeof stats.overall[player][stat] == 'object' ? stats.overall[player][stat].ratio : stats.overall[player][stat]);
@@ -171,4 +173,39 @@ function update_stream_assets_stats(stats) {
       }
     }
   }
+}
+
+function calculate_self_destructs(stats) {
+  try {
+    let winner_last_stock = get_winner(stats);
+    
+    let loser = stats.overall.find(player => player.playerIndex !== winner_last_stock.playerIndex);
+    // console.log('LOSER: ')
+    // console.log(loser)
+    let winner = stats.overall.find(player => player.playerIndex === winner_last_stock.playerIndex);
+    // console.log('WINNER: ')
+    // console.log(winner)
+    let winner_sds = 4 - winner_last_stock.count - loser.killCount;
+    let loser_sds = 4 - winner.killCount;
+    
+    
+    let sds = {};
+    sds[winner_last_stock.playerIndex] = winner_sds;
+    sds[loser.playerIndex] = loser_sds;
+
+    console.log("SDs: ", sds);
+    return sds;
+
+  }
+  catch(error) {
+    console.error("Error calculating self destructs: ", error);
+  }
+
+
+}
+
+function get_winner(stats) {
+  console.log('GET WINNER: ')
+  // console.log(stats.stocks.find(stock => stock.endPercent === null));
+  return stats.stocks.find(stock => stock.endPercent === null);
 }
