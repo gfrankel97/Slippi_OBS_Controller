@@ -4,6 +4,8 @@ const { askQuestions } = require('./ask.js');
 const script_settings = require('./settings.json');
 
 var current_slippi_file;
+var clip_queued = false;
+var clip_data = null;
 var process_reader = create_reader_interface();
 
 function create_reader_interface() {
@@ -36,40 +38,70 @@ function validate_answers(answers) {
 }
 
 function get_clip_information() {
-    let stage, character, time;
-    askQuestions(process_reader, [
-        `    Stage: `,
-        `    Character: `,
-        `    In-Game Time: `
-    ]).then(answers => {
-        if(!validate_answers(answers)) {
-            console.error("    Could not validate clip.");
-        }
-        else {
-            stage = answers[0];
-            character = answers[1];
-            time = answers[2];
-            fs.copyFileSync(current_slippi_file, script_settings.SLIPPI_CLIPS_FILE_PATH + current_slippi_file.split('\\').pop());
-        }
-        create_clip();
+    return new Promise((resolve, reject) => {
+        let stage, character, time;
+        askQuestions(process_reader, [
+            `    Stage: `,
+            `    Character: `,
+            `    In-Game Time: `
+        ]).then(answers => {
+            if(!validate_answers(answers)) {
+                console.error("    Could not validate clip.");
+                reject("Could not validate clip.");
+            }
+            else {
+                resolve({
+                    stage: answers[0],
+                    character: answers[1],
+                    time: answers[2].replace(":", ".")
+                });
+            }
+        });
     });
 }
 
-function create_clip() {
-    process_reader.question(`Hit Enter to clip it. `, () => {
-        get_clip_information();
+function prompt_for_clip() {
+    process_reader.question(`Hit Enter to clip it.\n`, () => {
+        get_clip_information().then((clip_information) => {
+            clip_queued = true;
+            console.log("Clip successfully queued. It will be created at the end of the game.");
+            clip_data = clip_information;
+        });
     })
+}
+
+function create_clip(clip_information) {
+    let clip_file_path = script_settings.SLIPPI_CLIPS_FILE_PATH + "\\" + clip_information.character + "_" + clip_information.stage + "_" + clip_information.time;
+    let counter = 1;
+    while(fs.existsSync(clip_file_path)) {
+        console.log(clip_file_path, "already exists, renaming to: ", clip_file_path + "_" + counter + ".slp")
+        clip_file_path = clip_file_path + "_" + counter;
+        counter++;
+    }
+    //check if file exists, if so, append something
+    //wait til game has finished to copy file
+    fs.copyFileSync(current_slippi_file, clip_file_path + ".slp");
+    clip_queued = false;
 }
 
 process.on('message', message => {
     let data = message[1];
     switch(message[0]) {
-        case "update_current_slippi_file":
+        case "new_game":
             current_slippi_file = data.current_slippi_file;
+            prompt_for_clip();
+            break;
+        case "check_for_clip":
+            if(clip_queued) {
+                create_clip(clip_data);
+            }
+            break;
+        case "prompt_for_clip":
+            prompt_for_clip();
+            break;
+        default:
             break;
 
     }
 });
-
-create_clip();
 
