@@ -1,10 +1,13 @@
-const SlippiGame = require('slp-parser-js');
-const chokidar = require('chokidar');
-const _ = require('lodash');
 const fs = require('fs');
+const { fork } = require('child_process');
+
+const _ = require('lodash');
+const chokidar = require('chokidar');
+const SlippiGame = require('slp-parser-js');
 
 const script_settings = require('./settings.json');
-
+const process = fork('./clip.js');
+process.send(["update_current_slippi_file", {"current_slippi_file": "blask"}]);
 
 console.log(`Listening at: ${script_settings.SLIPPI_FILE_PATH}`);
 
@@ -23,6 +26,7 @@ watcher.on('change', (path) => {
     let game = _.get(gameByPath, [path, 'game']);
     if (!game) {
       console.log(`New file at: ${path}`);
+      process.send(["update_current_slippi_file", {"current_slippi_file": path}]);
       game = new SlippiGame.default(path);
       const firstFrame = game.getLatestFrame();
       if(firstFrame.players) {
@@ -38,8 +42,8 @@ watcher.on('change', (path) => {
       };
     }
 
-  
-  
+
+
     frames = game.getFrames();
     latestFrame = game.getLatestFrame();
 
