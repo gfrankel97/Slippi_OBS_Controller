@@ -58,7 +58,7 @@ script = script => {
         }
 
         if (!gameState.settings && settings) {
-            console.log(`[Game Start] New game has started`);
+            console.log(chalk.green(`[Game Start]`), `New game has started`);
             child_process.send({
                 message_type: "new_game",
                 current_slippi_file: path,
