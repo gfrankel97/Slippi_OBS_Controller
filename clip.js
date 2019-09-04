@@ -1,12 +1,13 @@
 const readline = require('readline');
 const fs = require('fs');
-const { askQuestions } = require('./ask.js');
+const { askQuestion } = require('./ask.js');
 const script_settings = require('./settings.json');
 
-var current_slippi_file;
-var clip_queued = false;
-var clip_data = null;
-var process_reader = create_reader_interface();
+const process_reader = create_reader_interface();
+let current_slippi_file;
+let clip_queued = false;
+let clip_data = null;
+let game_meta = null;
 
 function create_reader_interface() {
     return readline.createInterface({
@@ -15,63 +16,43 @@ function create_reader_interface() {
     });
 }
 
-function validate_answers(answers) {
-    let stage = answers[0];
-    let character = answers[1];
-    let time = answers[2];
-    if(script_settings.STAGES.indexOf(stage) === -1) {
-        console.error("    Stage must be one of: ", script_settings.STAGES);
-        return false;
-    }
+validate_time = time => RegExp(`[0-8]:[0-6][0-9]`).test(time);
 
-    if(script_settings.CHARACTERS.indexOf(character) === -1) {
-        console.error("    Character not one of: ", script_settings.CHARACTERS);
-        return false;
-    }
+validate_character = character => character === '1' || character === '2';
 
-    if(!RegExp(`[0-7]:[0-6][0-9]`).test(time)) {
-        console.error("    \[\e[1;35m\]Time must be in format: m:ss\[\e[0m\]");
-        return false;
-    }
+get_character_info = async() => {
+    const characterInput = await askQuestion(process_reader,  `    Press 1 for ${game_meta.character1} or 2 for ${game_meta.character2}: \n`);
 
-    return true;
+    if (!validate_character(characterInput)) return get_character_info();
+    return characterInput === '1' ? game_meta.character1 : game_meta.character2;
 }
 
-function get_clip_information() {
-    return new Promise((resolve, reject) => {
-        let stage, character, time;
-        askQuestions(process_reader, [
-            `    Stage: `,
-            `    Character: `,
-            `    In-Game Time: `
-        ]).then(answers => {
-            if(!validate_answers(answers)) {
-                console.error("    Could not validate clip.");
-                reject("Could not validate clip.");
-            }
-            else {
-                resolve({
-                    stage: answers[0],
-                    character: answers[1],
-                    time: answers[2].replace(":", ".")
-                });
-            }
-        });
+
+get_time_info = async() => {
+    const timeInput = await askQuestion(process_reader, `In-Game Time (format: m:ss): \n`)
+
+    if (!validate_time(timeInput)) return get_time_info();
+    return timeInput.replace(':', '.');
+}
+
+get_clip_information = () => {
+    return new Promise(async (resolve) => {
+        const character = await get_character_info();
+        const time = await get_time_info();
+        resolve({ character, time });
     });
 }
 
-function prompt_for_clip() {
-    process_reader.question(`Hit Enter to clip it.\n`, () => {
-        get_clip_information().then((clip_information) => {
-            clip_queued = true;
-            console.log("Clip successfully queued. It will be created at the end of the game.");
-            clip_data = clip_information;
-        });
+prompt_for_clip = () => {
+    process_reader.question(`Hit Enter to clip it.\n`, async() => {
+        clip_data = await get_clip_information();
+        clip_queued = true;
+        console.log("Clip successfully queued. It will be created at the end of the game.");
     })
 }
 
-function create_clip(clip_information) {
-    let clip_file_path = script_settings.SLIPPI_CLIPS_FILE_PATH + "\\" + clip_information.character + "_" + clip_information.stage + "_" + clip_information.time;
+create_clip = (clip_information) => {
+    let clip_file_path = `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
     let counter = 1;
     while(fs.existsSync(clip_file_path)) {
         console.log(clip_file_path, "already exists, renaming to: ", clip_file_path + "_" + counter + ".slp")
@@ -85,10 +66,10 @@ function create_clip(clip_information) {
 }
 
 process.on('message', message => {
-    let data = message[1];
-    switch(message[0]) {
+    switch(message.message_type) {
         case "new_game":
-            current_slippi_file = data.current_slippi_file;
+            current_slippi_file = message.current_slippi_file;
+            game_meta = message.game_meta;
             prompt_for_clip();
             break;
         case "check_for_clip":
@@ -101,7 +82,6 @@ process.on('message', message => {
             break;
         default:
             break;
-
     }
 });
 

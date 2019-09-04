@@ -1,5 +1,3 @@
-const readline = require('readline');
-
 const AskQuestion = (rl, question) => {
     return new Promise(resolve => {
         rl.question(question, (answer) => {
@@ -20,5 +18,6 @@ const Ask = function(rl, questions) {
 }
 
 module.exports = {
-    askQuestions: Ask
+    askQuestions: Ask,
+    askQuestion: AskQuestion
 }
