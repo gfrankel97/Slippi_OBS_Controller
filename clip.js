@@ -1,5 +1,6 @@
 const readline = require('readline');
 const fs = require('fs');
+const chalk = require('chalk');
 const { askQuestion } = require('./ask.js');
 const script_settings = require('./settings.json');
 
@@ -47,7 +48,7 @@ prompt_for_clip = () => {
     process_reader.question(`Hit Enter to clip it.\n`, async() => {
         clip_data = await get_clip_information();
         clip_queued = true;
-        console.log("Clip successfully queued. It will be created at the end of the game.");
+        console.log(chalk.green(`[Clip Queued] `), `Clip successfully queued. It will be created at the end of the game.`);
     })
 }
 
@@ -55,12 +56,10 @@ create_clip = (clip_information) => {
     let clip_file_path = `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
     let counter = 1;
     while(fs.existsSync(clip_file_path)) {
-        console.log(clip_file_path, "already exists, renaming to: ", clip_file_path + "_" + counter + ".slp")
+        console.log(chalk.yellow(`[Clip Name Already Exists] `), clip_file_path, "already exists, renaming to: ", clip_file_path + "_" + counter + ".slp")
         clip_file_path = clip_file_path + "_" + counter;
         counter++;
     }
-    //check if file exists, if so, append something
-    //wait til game has finished to copy file
     fs.copyFileSync(current_slippi_file, clip_file_path + ".slp");
     clip_queued = false;
 }
