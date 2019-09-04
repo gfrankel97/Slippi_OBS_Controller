@@ -112,20 +112,12 @@ update_stream_assets_icon = (game_settings) => {
 
     //TO DO: Check for file and make sure it exists, if color doesn't exist, default to default
     fs.copyFileSync(
-        script_settings.CHARACTER_ICON_SOURCE
-        + character_one_name.toLowerCase()
-        + "-"
-        + character_one_color.toLowerCase()
-        + ".png",
-        script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.PLAYER_ONE_ICON_FILE_NAME);
+        `${script_settings.CHARACTER_ICON_SOURCE}${character_one_name.toLowerCase()}-${character_one_color.toLowerCase()}.png`,
+        `${script_settings.STREAM_OVERLAY_FILE_PATH} ${script_settings.PLAYER_ONE_ICON_FILE_NAME}`);
 
     fs.copyFileSync(
-        script_settings.CHARACTER_ICON_SOURCE
-        + character_two_name.toLowerCase()
-        + "-"
-        + character_two_color.toLowerCase()
-        + ".png",
-        script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.PLAYER_TWO_ICON_FILE_NAME);
+      `${script_settings.CHARACTER_ICON_SOURCE}${character_two_name.toLowerCase()}-${character_two_color.toLowerCase()}.png`,
+      `${script_settings.STREAM_OVERLAY_FILE_PATH} ${script_settings.PLAYER_TWO_ICON_FILE_NAME}`);
 }
 
 update_stream_assets_scene = scene => {
@@ -147,12 +139,8 @@ update_stream_assets_stats = stats => {
             if (typeof stat_value === 'number') stat_value = Math.round(stat_value * 10) / 10;
 
             if (stat_value) {
-                fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH
-                    + "stats\\"
-                    + port_to_folder_name[player.playerIndex]
-                    + "\\"
-                    + stat
-                    + ".txt",
+                fs.writeFileSync(
+                  `${script_settings.STREAM_OVERLAY_FILE_PATH}${stats}\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
                     stat_value);
             }
         }
@@ -163,7 +151,7 @@ update_stream_assets_stats = stats => {
 init = init => {
     if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
         console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
-        // process.exit();
+        process.exit();
     }
 
 
