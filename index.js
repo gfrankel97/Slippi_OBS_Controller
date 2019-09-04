@@ -1,12 +1,13 @@
 const SlippiGame = require('slp-parser-js');
 const chokidar = require('chokidar');
+const chalk = require('chalk');
 const _ = require('lodash');
 const fs = require('fs');
 
 const script_settings = require('./settings.json');
 
 
-console.log(`Listening at: ${script_settings.SLIPPI_FILE_PATH}`);
+console.log(chalk.green(`[Listening]`), ` at: ${script_settings.SLIPPI_FILE_PATH}`));
 
 let activePorts = [];
 
@@ -22,7 +23,7 @@ watcher.on('change', (path) => {
   try {
     let game = _.get(gameByPath, [path, 'game']);
     if (!game) {
-      console.log(`New file at: ${path}`);
+      console.log(chalk.green(`[New File]`),` at: ${path}`);
       game = new SlippiGame.default(path);
       const firstFrame = game.getLatestFrame();
       if(firstFrame.players) {
@@ -38,16 +39,10 @@ watcher.on('change', (path) => {
       };
     }
 
-  
-  
+
+
     frames = game.getFrames();
     latestFrame = game.getLatestFrame();
-
-    // const currFrame = latestFrame.players[0].post.frame - 1;
-    // const frameOne = frames[currFrame - 2].players[0].post.stocksRemaining;
-    // const frameTwo = frames[currFrame - 3].players[0].post.stocksRemaining;
-    // console.log(frames[currFrame - 3].players[0].post)
-
 
     gameState = _.get(gameByPath, [path, 'state']);
 
@@ -55,38 +50,21 @@ watcher.on('change', (path) => {
     stats = game.getStats();
     // console.log(SlippiGame.common.didLoseStock(frameOne, frameTwo));
 
-    // console.log(stats.stocks.filter(stock => stock.endPercent !== null).map(stock => { stock.endPercent, stock.playerIndex }));
-
-    //  const stockEnds = [];
-    //  stats.stocks.forEach(stock => {
-    //    if (stock.endPercent !== null) {
-    //      console.log('player' + stock.playerIndex + ' :' + stock.endPercent);
-    //    }
-    //  });
-
-
-    // You can uncomment the stats calculation below to get complex stats in real-time. The problem
-    // is that these calculations have not been made to operate only on new data yet so as
-    // the game gets longer, the calculation will take longer and longer
-    // stats = game.getStats();
-
     frames = game.getFrames();
     latestFrame = game.getLatestFrame();
     gameEnd = game.getGameEnd();
   } catch (err) {
-    console.error(err);
+    console.error(chalk.red(err));
     return;
   }
 
   if (!gameState.settings && settings) {
-    console.log(`[Game Start] New game has started`);
+    console.log(chalk.green(`[Game Start]`), `New game has started`);
     update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
     gameState.settings = settings;
   }
 
   if (gameEnd) {
-    // NOTE: These values and the quitter index will not work until 2.0.0 recording code is
-    // NOTE: used. This code has not been publicly released yet as it still has issues
     const endTypes = {
       1: "TIME!",
       2: "GAME!",
@@ -96,14 +74,12 @@ watcher.on('change', (path) => {
     const endMessage = _.get(endTypes, gameEnd.gameEndMethod) || "Unknown";
 
     const lrasText = gameEnd.gameEndMethod === 7 ? ` | Quitter Index: ${gameEnd.lrasInitiatorIndex}` : "";
-    console.log(`[Game Complete] Type: ${endMessage}${lrasText}`);
+    console.log(chalk.green(`[Game Complete])`, `Type: ${endMessage}${lrasText}`));
     update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
     update_stream_assets_stats(stats);
   }
 
   update_stream_assets_icon(settings);
-
-  // console.log(`Read took: ${Date.now() - start} ms`);
 });
 
 
@@ -144,7 +120,7 @@ const update_stream_assets_icon = (game_settings) => {
 
 function update_stream_assets_scene(scene) {
     setTimeout(function() {
-      console.log("Switching to scene: ", scene);
+      console.log(chalk.green(`[Scene Switching]`), `Scene: `, scene);
       fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
     }.bind(this), script_settings.TIME_TO_SWITCH_SCENES);
 }
