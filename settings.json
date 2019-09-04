@@ -1,8 +1,9 @@
 {
-    "SLIPPI_FILE_PATH": "C:\\Users\\gabes\\Desktop\\Slippi_Console_Capture",
+    "SLIPPI_CLIPS_FILE_PATH": "C:\\Users\\Yung T\\Desktop\\OBS Tourney Stream Shit\\clips",
+    "SLIPPI_FILE_PATH": "C:\\Users\\Yung T\\Desktop\\Slippi\\Slippi",
     "SLIPPI_FILE_PATH_2": "C:\\Users\\gabes\\Desktop\\FM-v5.9-Slippi-r18-Win\\Slippi",
-    "STREAM_OVERLAY_FILE_PATH": "C:\\Users\\gabes\\Desktop\\Stream\\overlay_files\\",
-    "CHARACTER_ICON_SOURCE": "C:\\Users\\gabes\\Desktop\\Stream\\hd_icon_textures\\",
+    "STREAM_OVERLAY_FILE_PATH": "C:\\Users\\Yung T\\Desktop\\OBS Tourney Stream Shit\\overlay_files\\",
+    "CHARACTER_ICON_SOURCE": "C:\\Users\\Yung T\\Desktop\\OBS Tourney Stream Shit\\hd_icon_textures\\",
     "PLAYER_ONE_ICON_FILE_NAME": "player_one_icon.png",
     "PLAYER_TWO_ICON_FILE_NAME": "player_two_icon.png",
     "SCENE_FILE_NAME": "scene.txt",
