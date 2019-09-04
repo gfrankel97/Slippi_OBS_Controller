@@ -1,10 +1,12 @@
-const SlippiGame = require('slp-parser-js');
-const chokidar = require('chokidar');
-const _ = require('lodash');
 const fs = require('fs');
+const { fork } = require('child_process');
+
+const _ = require('lodash');
+const chokidar = require('chokidar');
+const SlippiGame = require('slp-parser-js');
 
 const script_settings = require('./settings.json');
-
+const process = fork('./clip.js');
 
 console.log(`Listening at: ${script_settings.SLIPPI_FILE_PATH}`);
 
@@ -19,10 +21,13 @@ const watcher = chokidar.watch(script_settings.SLIPPI_FILE_PATH, {
 const gameByPath = {};
 watcher.on('change', (path) => {
   let gameState, settings, stats, frames, latestFrame, gameEnd;
+  let game;
   try {
-    let game = _.get(gameByPath, [path, 'game']);
+    game = _.get(gameByPath, [path, 'game']);
     if (!game) {
       console.log(`New file at: ${path}`);
+      
+      
       game = new SlippiGame.default(path);
       const firstFrame = game.getLatestFrame();
       if(firstFrame.players) {
@@ -38,8 +43,8 @@ watcher.on('change', (path) => {
       };
     }
 
-  
-  
+
+
     frames = game.getFrames();
     latestFrame = game.getLatestFrame();
 
@@ -80,6 +85,7 @@ watcher.on('change', (path) => {
 
   if (!gameState.settings && settings) {
     console.log(`[Game Start] New game has started`);
+    process.send(["new_game", {"current_slippi_file": path}]);
     update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
     gameState.settings = settings;
   }
@@ -99,6 +105,7 @@ watcher.on('change', (path) => {
     console.log(`[Game Complete] Type: ${endMessage}${lrasText}`);
     update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
     update_stream_assets_stats(stats);
+    process.send(["check_for_clip"]);
   }
 
   update_stream_assets_icon(settings);
