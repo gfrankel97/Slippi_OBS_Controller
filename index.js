@@ -140,7 +140,7 @@ update_stream_assets_stats = stats => {
 
             if (stat_value) {
                 fs.writeFileSync(
-                  `${script_settings.STREAM_OVERLAY_FILE_PATH}${stats}\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
+                  `${script_settings.STREAM_OVERLAY_FILE_PATH}stats\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
                     stat_value);
             }
         }

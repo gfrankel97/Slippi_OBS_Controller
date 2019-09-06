@@ -1,1 +1,1 @@
-call node C:\stream_scripts\realtime_slippi_parser.js
+call node C:\stream_scripts\Slippi_OBS_Controller\index.js
