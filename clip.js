@@ -71,11 +71,21 @@ create_clip = (clip_information) => {
     clip_queued = false;
 }
 
+
+correct_stage_names = (stage_name) => {
+    switch(stage_name) {
+        case "Pokémon Stadium":
+            return "Pokemon Stadium"
+            break;
+    }
+}
+
 process.on('message', message => {
     switch(message.message_type) {
         case "new_game":
             current_slippi_file = message.current_slippi_file;
             game_meta = message.game_meta;
+            game_meta.stage = correct_stage_names(game_meta.stage);
             prompt_for_clip();
             break;
         case "check_for_clip":
@@ -90,4 +100,6 @@ process.on('message', message => {
             break;
     }
 });
+
+
 
