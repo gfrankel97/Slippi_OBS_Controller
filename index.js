@@ -17,11 +17,13 @@ var child_process,
 const gameByPath = {};
 
 script = script => {
-    watcher.on('change', (path) => {
+    watcher.on('change', async(path) => {
         let gameState, settings, stats, frames, latestFrame, gameEnd, game;
         try {
             game = _.get(gameByPath, [path, 'game']);
             if (!game) {
+                //hacky way to get clipping after games working. We need to set a flag in clip.js to whether or not we're in a game
+                child_process.send({ message_type: "check_for_clip" });
                 console.log(chalk.green(`[New File]`), `at: ${path}`);
                 game = new SlippiGame.default(path);
                 const firstFrame = game.getLatestFrame();
@@ -58,17 +60,21 @@ script = script => {
         }
 
         if (!gameState.settings && settings) {
+            
             console.log(chalk.green(`[Game Start]`), `New game has started`);
+            await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
             child_process.send({
                 message_type: "new_game",
                 current_slippi_file: path,
                 game_meta: {
+                    
                     character1: characters.getCharacterName(settings.players[0].characterId),
+                    tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
                     character2: characters.getCharacterName(settings.players[1].characterId),
+                    tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
                     stage: stages.getStageName(settings.stageId)
                 }
             });
-            update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
             gameState.settings = settings;
         }
 
@@ -82,9 +88,9 @@ script = script => {
             const endMessage = _.get(endTypes, gameEnd.gameEndMethod) || "Unknown";
 
             const lrasText = gameEnd.gameEndMethod === 7 ? ` | Quitter Index: ${gameEnd.lrasInitiatorIndex}` : "";
-            console.log(chalk.green(`[Game Complete])`, `Type: ${endMessage}${lrasText}`));
-            update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
-            update_stream_assets_stats(stats);
+            console.log(chalk.green(`[Game Complete]`), `Type: ${endMessage}${lrasText}`);
+            await update_stream_assets_stats(stats);
+            await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
             child_process.send({ message_type: "check_for_clip" });
         }
 
@@ -120,35 +126,41 @@ update_stream_assets_icon = (game_settings) => {
       `${script_settings.STREAM_OVERLAY_FILE_PATH} ${script_settings.PLAYER_TWO_ICON_FILE_NAME}`);
 }
 
-update_stream_assets_scene = scene => {
-    setTimeout(() => {
-        console.log(chalk.green(`[Scene Switching]`), `Scene: `, scene);
-        fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
-    }, script_settings.TIME_TO_SWITCH_SCENES);
+update_stream_assets_scene = (scene) => {
+    return new Promise((resolve, reject) => {
+            console.log(chalk.green(`[Scene Switching]`), `Scene:`, scene);
+            fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
+            resolve();
+        // maybe no longer needed w/ obs setting 
+        //setTimeout(() => {}, script_settings.TIME_TO_SWITCH_SCENES);
+    })
 }
 
 //TO DO: NEED TO MAKE THIS 4P COMPATIBLE
-update_stream_assets_stats = stats => {
-    //keys: stocks combos actionCounts conversions lastFrame playableFrameCount overall gameComplete
-    const port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
-
-    stats.overall.forEach(player => {
-        for (let stat in player) {
-            stat_value = typeof player[stat] == 'object' ? player[stat].ratio : player[stat];
-
-            if (typeof stat_value === 'number') stat_value = Math.round(stat_value * 10) / 10;
-
-            if (stat_value) {
-                fs.writeFileSync(
-                  `${script_settings.STREAM_OVERLAY_FILE_PATH}stats\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
-                    stat_value);
+update_stream_assets_stats = (stats) => {
+    return new Promise((resolve, reject) => {
+        //keys: stocks combos actionCounts conversions lastFrame playableFrameCount overall gameComplete
+        const port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
+    
+        stats.overall.forEach(player => {
+            for (let stat in player) {
+                stat_value = typeof player[stat] == 'object' ? player[stat].ratio : player[stat];
+    
+                if (typeof stat_value === 'number') stat_value = Math.round(stat_value * 10) / 10;
+    
+                if (stat_value) {
+                    fs.writeFileSync(
+                      `${script_settings.STREAM_OVERLAY_FILE_PATH}stats\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
+                        stat_value);
+                }
             }
-        }
+        });
+        resolve();
     });
 }
 
 
-init = init => {
+init = () => {
     if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
         console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
         process.exit();
