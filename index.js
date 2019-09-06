@@ -82,7 +82,7 @@ script = script => {
             const endMessage = _.get(endTypes, gameEnd.gameEndMethod) || "Unknown";
 
             const lrasText = gameEnd.gameEndMethod === 7 ? ` | Quitter Index: ${gameEnd.lrasInitiatorIndex}` : "";
-            console.log(chalk.green(`[Game Complete])`, `Type: ${endMessage}${lrasText}`));
+            console.log(chalk.green(`[Game Complete]`, `Type: ${endMessage}${lrasText}`));
             update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
             update_stream_assets_stats(stats);
             child_process.send({ message_type: "check_for_clip" });
