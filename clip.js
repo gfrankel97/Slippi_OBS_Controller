@@ -37,15 +37,15 @@ get_time_info = async() => {
     return timeInput.replace(':', '.');
 }
 
-get_tag_info = async() => {
+get_tag_info = () => {
     return characterInput === '1' ? game_meta.tag1 : game_meta.tag2;
 }
 
 get_clip_information = () => {
-    return new Promise(async (resolve) => {
+    return new Promise(async(resolve) => {
         const character = await get_character_info();
         const time = await get_time_info();
-        const tag = await get_tag_info();
+        const tag = get_tag_info();
         resolve({ character, time, tag });
     });
 }
@@ -59,7 +59,7 @@ prompt_for_clip = () => {
 }
 
 create_clip = (clip_information) => {
-    let clip_file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`; 
+    let clip_file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
     let counter = 1;
     while(fs.existsSync(clip_file_path)) {
         console.log(chalk.yellow(`[Clip Name Already Exists]`), `${clip_file_path} already exists, renaming to: ${clip_file_path}_${counter}.slp`)
