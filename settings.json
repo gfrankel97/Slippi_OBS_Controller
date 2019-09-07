@@ -1,5 +1,6 @@
 {
-    "SLIPPI_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/",
+    "INPUT_SLIPPI_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/input",
+    "OUTPUT_SLIPPI_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/output",
     "STREAM_OVERLAY_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/overlay_files/",
     "CHARACTER_ICON_SOURCE": "/Users/gabefrankel/Desktop/stream_assets/hd_icon_textures/",
     "SLIPPI_CLIPS_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/clips",

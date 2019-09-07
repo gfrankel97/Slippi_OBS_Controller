@@ -1,5 +1,6 @@
 const fs = require('fs');
 const _ = require('lodash');
+const fs_path = require('path');
 const chalk = require('chalk');
 const chokidar = require('chokidar');
 const { fork } = require('child_process');
@@ -18,7 +19,7 @@ let child_process,
 const gameByPath = {};
 
 script = script => {
-  let watcher = chokidar.watch(script_settings.SLIPPI_FILE_PATH, {
+  let watcher = chokidar.watch(script_settings.INPUT_SLIPPI_FILE_PATH, {
     depth: 0,
     persistent: true,
     usePolling: true,
@@ -167,19 +168,46 @@ update_stream_assets_stats = (stats) => {
     });
 }
 
+validate_settings = () => {
+  if (!fs.existsSync(script_settings.INPUT_SLIPPI_FILE_PATH)) {
+    console.error(chalk.red(`[Settings Error]`), `Input Slippi file path ${script_settings.INPUT_SLIPPI_FILE_PATH} does not exist. Check your settings.`);
+    process.exit();
+  }
+  console.log(chalk.green(`[Input Files Directory] `), `at: ${script_settings.INPUT_SLIPPI_FILE_PATH}`);
+
+  if (!fs.existsSync(script_settings.OUTPUT_SLIPPI_FILE_PATH)) {
+    console.error(chalk.red(`[Settings Error]`), `Output Slippi file path ${script_settings.OUTPUT_SLIPPI_FILE_PATH} does not exist. Check your settings. Exiting.`);
+    process.exit();
+  }
+
+  if (!fs.existsSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/friendlies`))) {
+    console.error(chalk.yellow(`[Settings Warning]`), `Output Slippi file path ${script_settings.OUTPUT_SLIPPI_FILE_PATH}/friendlies does not exist. Creating it for you.`);
+    fs.mkdirSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/friendlies`));
+  }
+  console.log(chalk.green(`[Output Files Directory]`), `at: ${script_settings.OUTPUT_SLIPPI_FILE_PATH}`);
+
+
+  if (!fs.existsSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/tournament`))) {
+    console.warn(chalk.yellow(`[Settings Warning]`), `Output Slippi file path ${script_settings.OUTPUT_SLIPPI_FILE_PATH}/tournament does not exist. Creating it for you.`);
+    fs.mkdirSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/tournament`));
+  }
+
+  if (!fs.existsSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/clips`))) {
+    console.warn(chalk.yellow(`[Settings Warning]`), `Output Slippi file path ${script_settings.OUTPUT_SLIPPI_FILE_PATH}/clips does not exist. Creating it for you.`);
+    fs.mkdirSync(fs_path.join(`${script_settings.OUTPUT_SLIPPI_FILE_PATH}`, `/clips`));
+  }
+}
+
 
 init = () => {
-    if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
-        console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
-        process.exit();
-    }
-
+    validate_settings();
     current_mode = script_settings.MODES[script_settings.MODES.indexOf("Friendlies")];
-    console.log(chalk.green(`[Listening]`), `at: ${script_settings.SLIPPI_FILE_PATH}`);
+    console.log(chalk.green(`[Script Mode]`), `is: ${current_mode}`);
     child_process = fork('./clip.js');
+
+    script();
 }
 
 
 
 init();
-script();
