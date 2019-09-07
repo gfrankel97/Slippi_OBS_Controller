@@ -1,6 +1,7 @@
 const readline = require('readline');
 const fs = require('fs');
 const chalk = require('chalk');
+const fs_path = require('path');
 const { askQuestion } = require('./ask.js');
 const script_settings = require('./settings.json');
 
@@ -22,12 +23,16 @@ validate_time = time => RegExp(`[0-8]:[0-6][0-9]`).test(time);
 
 validate_character = character => character === '1' || character === '2';
 
-get_character_info = async() => {
+get_character_info = async(is_clip) => {
     let character1_string = game_meta.tag1 ? game_meta.tag1 : game_meta.character1;
     let character2_string = game_meta.tag2 ? game_meta.tag2 : game_meta.character2;
+    if(!is_clip) {
+        return `${character1_string}_vs_${character2_string}`
+    }
     if(character1_string === character2_string) {
         character1_string = `${game_meta.color1}-${game_meta.character1}`;
         character2_string = `${game_meta.color2}-${game_meta.character2}`
+
     }
     let question_string = `    Press 1 for ${character1_string} or 2 for ${character2_string}: `;
     characterInput = await askQuestion(process_reader,  question_string);
@@ -54,37 +59,69 @@ get_tag_info = () => {
     return characterInput === '1' ? game_meta.tag1 : game_meta.tag2;
 }
 
-get_clip_information = () => {
+get_readable_file_name = (clip_information, is_clip) => {
+    let file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
+    if(is_clip) {
+        let counter = 1;
+        while(fs.existsSync(file_path)) {
+            console.log(chalk.yellow(`[Clip Name Already Exists]`), `${file_path} already exists, renaming to: ${file_path}_${counter}.slp`)
+            file_path = `${file_path}_${counter}`;
+            counter++;
+        }
+    }
+    else {
+        file_path = `${file_path}`
+    }
+    return file_path;
+}
+
+get_file_information = (is_clip) => {
     return new Promise(async(resolve) => {
-        const character = await get_character_info();
+        const character = await get_character_info(is_clip);
         const time = await get_time_info();
         const tag = get_tag_info();
-        resolve({ character, time, tag });
+        const file_name = get_readable_file_name({ character, time, tag }, is_clip);
+        resolve({ character, time, tag, file_name });
     });
 }
 
 prompt_for_clip = () => {
-    process_reader.question(`Hit Enter to clip it.\n`, async(key) => {
+    console.log('PROMPT FOR CLIP')
+    // 'f' to enter friendlies mode
+    // 't' to enter tournament mode
+    process_reader.question(`Hit 'c' to clip it.\n`, async(key) => {
         console.log(key)
-        clip_data = await get_clip_information();
-        clip_queued = true;
-        console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
+        if(key === 'c') {
+            clip_data = await get_file_information(true);
+            clip_queued = true;
+            console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
+        }
+
+        if(key === 't') {
+            process.send({'message_type': 'change_script_mode',
+                        'game_mode': 'Tournament'})
+        }
+
+        if(key === 'f') {
+            process.send({'message_type': 'change_script_mode',
+                        'game_mode': 'Friendlies'})
+        }
     })
 }
 
 create_clip = (clip_information) => {
-    let clip_file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
-    let counter = 1;
-    while(fs.existsSync(clip_file_path)) {
-        console.log(chalk.yellow(`[Clip Name Already Exists]`), `${clip_file_path} already exists, renaming to: ${clip_file_path}_${counter}.slp`)
-        clip_file_path = `${clip_file_path}_${counter}`;
-        counter++;
-    }
-    fs.copyFileSync(current_slippi_file, `${clip_file_path}.slp`);
-    console.log(chalk.green(`[Clip Created]`), `at location: ${clip_file_path}.slp`)
+    fs.copyFileSync(current_slippi_file, `${clip_information.file_path}.slp`);
+    console.log(chalk.green(`[Clip Created]`), `at location: ${clip_information.file_path}.slp`)
     clip_queued = false;
 }
 
+copy_slippi_file_to_output_dir = async() => {
+    console.log('MODE: ', game_meta.mode)
+    // let destination_file = fs_path.join(await get_file_information(false).file_name, game_meta.mode.toLowerCase());
+    console.log(game_meta.mode);
+    // console.log(destination_file)
+    // fs.renameSync(current_slippi_file, destination_file);
+}
 
 correct_stage_names = (stage_name) => {
     switch(stage_name) {
@@ -101,13 +138,11 @@ process.on('message', message => {
             game_meta.stage = correct_stage_names(game_meta.stage);
             prompt_for_clip();
             break;
-        case "check_for_clip":
+        case "game_end":
             if(clip_queued) {
                 create_clip(clip_data);
             }
-            break;
-        case "prompt_for_clip":
-            prompt_for_clip();
+            copy_slippi_file_to_output_dir();
             break;
         default:
             break;

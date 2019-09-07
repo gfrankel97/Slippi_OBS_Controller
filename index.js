@@ -24,13 +24,14 @@ script = script => {
     persistent: true,
     usePolling: true,
     ignoreInitial: true,
-  }).on('all', (ev, path) => {
+  }).on('all', async(ev, path) => {
       let gameState, settings, stats, frames, latestFrame, gameEnd, game;
       try {
           game = _.get(gameByPath, [path, 'game']);
           if (!game) {
               //hacky way to get clipping after games working. We need to set a flag in clip.js to whether or not we're in a game
-              child_process.send({ message_type: "check_for_clip" });
+              // BROKENN IN RECENT CODE - NEEDS ^
+              // child_process.send({ message_type: "check_for_clip" });
               console.log(chalk.green(`[New File]`), `at: ${path}`);
               game = new SlippiGame.default(path);
               const firstFrame = game.getLatestFrame();
@@ -67,23 +68,21 @@ script = script => {
       }
 
       if (!gameState.settings && settings) {
-          console.log(Characters)
-          console.log(chalk.green(`[Game Start]`), `New game has started in ${current_mode} Mode`);
-          // await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
-          console.log(settings.players[0])
+          console.log(chalk.green(`[Game Start]`) + ` New game has started in ` + chalk.blue(current_mode) + ' mode.');
+          await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
           child_process.send({
               message_type: "new_game",
               current_slippi_file: path,
               game_meta: {
-
                   character1: Characters.getCharacterName(settings.players[0].characterId),
                   tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
                   color1: Characters.getCharacterColorName(settings.players[0].characterId, settings.players[0].characterColor),
                   character2: Characters.getCharacterName(settings.players[1].characterId),
                   tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
                   color2: Characters.getCharacterColorName(settings.players[1].characterId, settings.players[1].characterColor),
-                  stage: stages.getStageName(settings.stageId)
-              }
+                  stage: stages.getStageName(settings.stageId),
+                  mode: current_mode
+              },
           });
           gameState.settings = settings;
       }
@@ -99,9 +98,10 @@ script = script => {
 
           const lrasText = gameEnd.gameEndMethod === 7 ? ` | Quitter Index: ${gameEnd.lrasInitiatorIndex}` : "";
           console.log(chalk.green(`[Game Complete]`), `Type: ${endMessage}${lrasText}`);
-          update_stream_assets_stats(stats);
-          // await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
-          child_process.send({ message_type: "check_for_clip" });
+          await update_stream_assets_stats(stats);
+          await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi_Stats")]);
+          child_process.send({ message_type: "game_end" });
+
       }
 
       update_stream_assets_icon(settings);
@@ -202,12 +202,19 @@ validate_settings = () => {
 init = () => {
     validate_settings();
     current_mode = script_settings.MODES[script_settings.MODES.indexOf("Friendlies")];
-    console.log(chalk.green(`[Script Mode]`), `is: ${current_mode}`);
+    console.log(chalk.green(`[Script Mode]`) + ` is in: ` + chalk.blue(current_mode) + ' mode.');
     child_process = fork('./clip.js');
 
+    child_process.on('message', message => {
+      switch(message.message_type) {
+        case "change_script_mode":
+          current_mode = script_settings.MODES[script_settings.MODES.indexOf(message.game_mode)];
+          console.log(chalk.green(`[Script Mode Changed]`) + ` to: ` + chalk.blue(current_mode) + ' mode.');
+          break;
+      }
+    })
     script();
 }
-
 
 
 init();
