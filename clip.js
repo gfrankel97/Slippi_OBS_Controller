@@ -23,9 +23,19 @@ validate_time = time => RegExp(`[0-8]:[0-6][0-9]`).test(time);
 validate_character = character => character === '1' || character === '2';
 
 get_character_info = async() => {
-    characterInput = await askQuestion(process_reader,  `    Press 1 for ${game_meta.character1} or 2 for ${game_meta.character2}: `);
+    let character1_string = game_meta.tag1 ? game_meta.tag1 : game_meta.character1;
+    let character2_string = game_meta.tag2 ? game_meta.tag2 : game_meta.character2;
+    if(character1_string === character2_string) {
+        character1_string = `${game_meta.color1}-${game_meta.character1}`;
+        character2_string = `${game_meta.color2}-${game_meta.character2}`
+    }
+    let question_string = `    Press 1 for ${character1_string} or 2 for ${character2_string}: `;
+    characterInput = await askQuestion(process_reader,  question_string);
 
-    if (!validate_character(characterInput)) return get_character_info();
+    if (!validate_character(characterInput)) {
+        return get_character_info();
+    }
+
     return characterInput === '1' ? game_meta.character1 : game_meta.character2;
 }
 
@@ -33,7 +43,10 @@ get_character_info = async() => {
 get_time_info = async() => {
     const timeInput = await askQuestion(process_reader, `    In-Game Time (format: m:ss): `)
 
-    if (!validate_time(timeInput)) return get_time_info();
+    if (!validate_time(timeInput)) {
+        return get_time_info();
+    }
+
     return timeInput.replace(':', '.');
 }
 
@@ -51,7 +64,8 @@ get_clip_information = () => {
 }
 
 prompt_for_clip = () => {
-    process_reader.question(`Hit Enter to clip it.\n`, async() => {
+    process_reader.question(`Hit Enter to clip it.\n`, async(key) => {
+        console.log(key)
         clip_data = await get_clip_information();
         clip_queued = true;
         console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
@@ -76,7 +90,6 @@ correct_stage_names = (stage_name) => {
     switch(stage_name) {
         case "Pokémon Stadium":
             return "Pokemon Stadium"
-            break;
     }
 }
 

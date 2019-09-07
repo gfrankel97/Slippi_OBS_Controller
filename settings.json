@@ -1,13 +1,13 @@
 {
-    "SLIPPI_FILE_PATH": "C:\\Users\\gabes\\Desktop\\FM-v5.9-Slippi-r18-Win\\Slippi",
-    "SLIPPI_FILE_PATH_2": "C:\\Users\\gabes\\Desktop\\Slippi_Console_Capture",
-    "SLIPPI_CLIPS_FILE_PATH": "C:\\Users\\gabes\\Desktop\\Slippi_Console_Capture\\clips",
-    "STREAM_OVERLAY_FILE_PATH": "C:\\Users\\gabes\\Desktop\\Stream\\overlay_files\\",
-    "CHARACTER_ICON_SOURCE": "C:\\Users\\gabes\\Desktop\\Stream\\hd_icon_textures\\",
+    "SLIPPI_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/",
+    "STREAM_OVERLAY_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/overlay_files/",
+    "CHARACTER_ICON_SOURCE": "/Users/gabefrankel/Desktop/stream_assets/hd_icon_textures/",
+    "SLIPPI_CLIPS_FILE_PATH": "/Users/gabefrankel/Desktop/stream_assets/slippi_files/home/clips",
     "PLAYER_ONE_ICON_FILE_NAME": "player_one_icon.png",
     "PLAYER_TWO_ICON_FILE_NAME": "player_two_icon.png",
     "SCENE_FILE_NAME": "scene.txt",
     "SCENES": ["Slippi", "Slippi_Stats"],
+    "MODES": ["Tournament", "Friendlies"],
     "TIME_TO_SWITCH_SCENES": 1000,
     "STAGES": ["bf", "fd", "fod", "ys", "dl"],
     "CHARACTERS": [
