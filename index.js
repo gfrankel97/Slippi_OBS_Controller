@@ -70,6 +70,16 @@ script = script => {
       if (!gameState.settings && settings) {
           console.log(chalk.green(`[Game Start]`) + ` New game has started in ` + chalk.blue(current_mode) + ' mode.');
           await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
+          console.log({
+            character1: Characters.getCharacterName(settings.players[0].characterId),
+            tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
+            color1: Characters.getCharacterColorName(settings.players[0].characterId, settings.players[0].characterColor),
+            character2: Characters.getCharacterName(settings.players[1].characterId),
+            tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
+            color2: Characters.getCharacterColorName(settings.players[1].characterId, settings.players[1].characterColor),
+            stage: stages.getStageName(settings.stageId),
+            mode: current_mode
+        })
           child_process.send({
               message_type: "new_game",
               current_slippi_file: path,

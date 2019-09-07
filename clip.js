@@ -60,6 +60,7 @@ get_tag_info = () => {
 }
 
 get_readable_file_name = (clip_information, is_clip) => {
+    console.log('READABLE')
     let file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
     if(is_clip) {
         let counter = 1;
@@ -72,14 +73,17 @@ get_readable_file_name = (clip_information, is_clip) => {
     else {
         file_path = `${file_path}`
     }
+    console.log(file_path)
     return file_path;
 }
 
 get_file_information = (is_clip) => {
+    console.log("GET FILE INFO 1")
     return new Promise(async(resolve) => {
         const character = await get_character_info(is_clip);
         const time = await get_time_info();
         const tag = get_tag_info();
+        console.log("GET FILE INFO 2")
         const file_name = get_readable_file_name({ character, time, tag }, is_clip);
         resolve({ character, time, tag, file_name });
     });
@@ -116,9 +120,15 @@ create_clip = (clip_information) => {
 }
 
 copy_slippi_file_to_output_dir = async() => {
-    console.log('MODE: ', game_meta.mode)
-    // let destination_file = fs_path.join(await get_file_information(false).file_name, game_meta.mode.toLowerCase());
-    console.log(game_meta.mode);
+    console.log('HERE 1')
+    let output_file_name;
+    get_file_information(false).then(info => {
+        console.log('HERE 2')
+        console.log(info)
+        output_file_name = info.file_name;
+    });
+
+    // let destination_file = fs_path.join(output_file_name, game_meta.mode.toLowerCase());
     // console.log(destination_file)
     // fs.renameSync(current_slippi_file, destination_file);
 }
