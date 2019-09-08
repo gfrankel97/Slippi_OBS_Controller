@@ -7,7 +7,7 @@ const { fork } = require('child_process');
 const SlippiGame = require('slp-parser-js');
 const stages = require('slp-parser-js/dist/melee/stages');
 const characters = require('slp-parser-js/dist/melee/characters');
-
+const $ = require('jquery');
 const script_settings = require('./settings.json');
 
 var child_process,
@@ -17,7 +17,7 @@ var child_process,
 const gameByPath = {};
 
 script = script => {
-    watcher.on('change', async(path) => {
+    watcher.on('all', async(event, path) => {
         let gameState, settings, stats, frames, latestFrame, gameEnd, game;
         try {
             game = _.get(gameByPath, [path, 'game']);
@@ -60,21 +60,26 @@ script = script => {
         }
 
         if (!gameState.settings && settings) {
-            
+
             console.log(chalk.green(`[Game Start]`), `New game has started`);
+            $('#game-status').text('New game has started');
+            const game_meta = {
+                character1: characters.getCharacterName(settings.players[0].characterId),
+                tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
+                character2: characters.getCharacterName(settings.players[1].characterId),
+                tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
+                stage: stages.getStageName(settings.stageId)
+            }
+            $('#player1').text(game_meta.character1);
+            $('#player2').text(game_meta.character2);
+
             await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
             child_process.send({
                 message_type: "new_game",
                 current_slippi_file: path,
-                game_meta: {
-                    
-                    character1: characters.getCharacterName(settings.players[0].characterId),
-                    tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
-                    character2: characters.getCharacterName(settings.players[1].characterId),
-                    tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
-                    stage: stages.getStageName(settings.stageId)
-                }
+                game_meta
             });
+            console.log(settings);
             gameState.settings = settings;
         }
 
@@ -131,7 +136,7 @@ update_stream_assets_scene = (scene) => {
             console.log(chalk.green(`[Scene Switching]`), `Scene:`, scene);
             fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
             resolve();
-        // maybe no longer needed w/ obs setting 
+        // maybe no longer needed w/ obs setting
         //setTimeout(() => {}, script_settings.TIME_TO_SWITCH_SCENES);
     })
 }
@@ -141,13 +146,13 @@ update_stream_assets_stats = (stats) => {
     return new Promise((resolve, reject) => {
         //keys: stocks combos actionCounts conversions lastFrame playableFrameCount overall gameComplete
         const port_to_folder_name = ["player_one", "player_two", "player_three", "player_four"];
-    
+
         stats.overall.forEach(player => {
             for (let stat in player) {
                 stat_value = typeof player[stat] == 'object' ? player[stat].ratio : player[stat];
-    
+
                 if (typeof stat_value === 'number') stat_value = Math.round(stat_value * 10) / 10;
-    
+
                 if (stat_value) {
                     fs.writeFileSync(
                       `${script_settings.STREAM_OVERLAY_FILE_PATH}stats\\${port_to_folder_name[player.playerIndex]}\\${stat}.txt`,
@@ -161,6 +166,7 @@ update_stream_assets_stats = (stats) => {
 
 
 init = () => {
+    $('#game-status').text('Waiting for Game');
     if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
         console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
         process.exit();

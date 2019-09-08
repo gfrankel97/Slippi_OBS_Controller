@@ -1,0 +1,41 @@
+html > * {
+    color: #ddd;
+    font-family: 'Open Sans' sans-serif;
+}
+
+.heading {
+    font-size: 30px;
+    display: flex;
+    justify-content: center;
+
+}
+
+.body {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    margin-top: 3px;
+    flex-direction: column;
+}
+
+.game-status {
+    font-size: 12px;
+    font-style: italic;
+    display: block;
+    text-align: center;
+    width: 100%;
+}
+
+.players {
+    margin-top: 3px;
+    display: flex;
+    flex: 1;
+}
+
+.player {
+    flex: 1;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
