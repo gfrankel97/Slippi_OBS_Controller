@@ -1,0 +1,2 @@
+automatically look for and set Wii IPs in connections
+String replacements in dolphin.ini

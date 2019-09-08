@@ -23,7 +23,7 @@ script = script => {
             game = _.get(gameByPath, [path, 'game']);
             if (!game) {
                 //hacky way to get clipping after games working. We need to set a flag in clip.js to whether or not we're in a game
-                child_process.send({ message_type: "check_for_clip" });
+                // child_process.send({ message_type: "check_for_clip" });
                 console.log(chalk.green(`[New File]`), `at: ${path}`);
                 game = new SlippiGame.default(path);
                 const firstFrame = game.getLatestFrame();

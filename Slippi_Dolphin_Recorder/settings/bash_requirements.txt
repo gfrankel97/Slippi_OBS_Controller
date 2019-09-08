@@ -1,0 +1,7 @@
+jq
+basename
+dolphin-emu #sh -c "$(curl -Ls https://github.com/project-slippi/Slippi-FM-installer/raw/master/setup)"
+cut
+grep
+strings
+xxd

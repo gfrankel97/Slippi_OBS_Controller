@@ -7,6 +7,7 @@ const script_settings = require('./settings.json');
 const process_reader = create_reader_interface();
 let current_slippi_file;
 let clip_queued = false;
+let in_game = false;
 let clip_data = null;
 let game_meta = null;
 let characterInput = null;
@@ -55,6 +56,9 @@ prompt_for_clip = () => {
         clip_data = await get_clip_information();
         clip_queued = true;
         console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
+        if(!in_game) {
+            create_clip();
+        }
     })
 }
 
@@ -76,6 +80,7 @@ process.on('message', message => {
         case "new_game":
             current_slippi_file = message.current_slippi_file;
             game_meta = message.game_meta;
+            in_game = true;
             prompt_for_clip();
             break;
         case "check_for_clip":
@@ -85,6 +90,9 @@ process.on('message', message => {
             break;
         case "prompt_for_clip":
             prompt_for_clip();
+            break;
+        case "game_end":
+            in_game = false;
             break;
         default:
             break;
