@@ -11,6 +11,7 @@ let clip_data = null;
 let game_meta = null;
 let characterInput = null;
 
+
 function create_reader_interface() {
     return readline.createInterface({
         input: process.stdin,
@@ -50,13 +51,15 @@ get_clip_information = () => {
     });
 }
 
-prompt_for_clip = () => {
-    process_reader.question(`Hit Enter to clip it.\n`, async() => {
-        clip_data = await get_clip_information();
-        clip_queued = true;
-        console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
-    })
+queue_clip_info = async() => {
+    clip_data = await get_clip_information();
+    clip_queued = true;
+    // $('#clip-status').text('Clip successfully queued');
+    console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
 }
+
+prompt_for_clip = () => process_reader.question(`Hit Enter to clip it.\n`, queue_clip_info);
+
 
 create_clip = (clip_information) => {
     let clip_file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
@@ -94,12 +97,12 @@ process.on('message', message => {
             }
             break;
         case "prompt_for_clip":
+            console.log('prompt');
             prompt_for_clip();
             break;
         default:
             break;
     }
 });
-
 
 

@@ -1,8 +1,9 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Slippi OBS Controlller</title>
     <link rel="stylesheet" type="text/css" href="./styles.css" />
+    <script>window.$ = window.jQuery = require('jquery');</script>
 </head>
 <body style="background-color: #323639">
 
@@ -12,14 +13,32 @@
     <div class="body">
         <div class="game-status" id="game-status" style="color: white;"></div>
 
-        <div class="players">
-            <div class="player" id="player1"></div>
-            <div class="player" id="player2"></div>
+        <div class="game-info-section">
+            <div class="game-info" id="player1"></div>
+            <div class="game-info" id="stage"></div>
+            <div class="game-info" id="player2"></div>
+        </div>
+
+        <div id="clip-it" class="clip-it">
+            Clip it!
+        </div>
+
+        <div class="clip-info" id="clip-info">
+            <div class="clip-info-label">Select Character</div>
+            <div class="clip-characters">
+                <div class="clip-character" id="clip-character1"></div>
+                <div class="clip-character" id="clip-character2"></div>
+            </div>
+            <div class="clip-info-label">Time Stamp (m:ss)</div>
+            <input class="time-stamp" id="time-stamp" />
+
+            <!-- <div id="create-clip" class="clip-it">Create Clip</div> -->
+            <input class="clip-it" value="Create Clip" id="create-clip" type="button" />
         </div>
     </div>
 
 
 
-    <script src = "./index.js" ></script>
+    <script src="./view.js" ></script>
   </body>
 </html>

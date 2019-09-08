@@ -7,11 +7,9 @@ const { fork } = require('child_process');
 const SlippiGame = require('slp-parser-js');
 const stages = require('slp-parser-js/dist/melee/stages');
 const characters = require('slp-parser-js/dist/melee/characters');
-const $ = require('jquery');
 const script_settings = require('./settings.json');
 
-var child_process,
-    watcher;
+var child_process, watcher;
 
 
 const gameByPath = {};
@@ -62,16 +60,26 @@ script = script => {
         if (!gameState.settings && settings) {
 
             console.log(chalk.green(`[Game Start]`), `New game has started`);
-            $('#game-status').text('New game has started');
+            const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
             const game_meta = {
                 character1: characters.getCharacterName(settings.players[0].characterId),
                 tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
+                color1: characters.getCharacterColorName(settings.players[0].characterId, settings.players[0].characterColor),
                 character2: characters.getCharacterName(settings.players[1].characterId),
                 tag2: settings.players[1].nametag ? settings.players[1].nametag : "",
+                color2: characters.getCharacterColorName(settings.players[1].characterId, settings.players[1].characterColor),
                 stage: stages.getStageName(settings.stageId)
             }
-            $('#player1').text(game_meta.character1);
-            $('#player2').text(game_meta.character2);
+
+            process.send({
+                message_type: 'new game',
+                payload: {
+                    game: `New game started at ${time}`,
+                    p1: `${game_meta.color1} ${game_meta.character1}`,
+                    p2: `${game_meta.color2} ${game_meta.character2}`,
+                    stage: `${game_meta.stage}`
+                }
+            });
 
             await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
             child_process.send({
@@ -166,7 +174,7 @@ update_stream_assets_stats = (stats) => {
 
 
 init = () => {
-    $('#game-status').text('Waiting for Game');
+    process.send({ message_type: 'init' });
     if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
         console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
         process.exit();
@@ -184,6 +192,25 @@ init = () => {
 }
 
 
+const main = () => {
+    console.log('hitting main');
+    init();
+    script();
+}
 
-init();
-script();
+process.on('message', message => {
+    console.log(message);
+    switch (message) {
+        case 'start': {
+            console.log('starting');
+            main();
+            break;
+        }
+        case 'clip': {
+            child_process.send({ message_type: "prompt_for_clip" });
+        }
+    }
+});
+
+// module.exports = { main };
+

@@ -7,7 +7,10 @@ html > * {
     font-size: 30px;
     display: flex;
     justify-content: center;
-
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 3px;
+    text-shadow: 2px 2px black;
 }
 
 .body {
@@ -15,7 +18,7 @@ html > * {
     flex: 1;
     display: flex;
     justify-content: center;
-    margin-top: 3px;
+    margin-top: 10px;
     flex-direction: column;
 }
 
@@ -27,15 +30,73 @@ html > * {
     width: 100%;
 }
 
-.players {
-    margin-top: 3px;
+.game-info-section {
+    margin-top: 10px;
     display: flex;
     flex: 1;
 }
 
-.player {
+.game-info {
     flex: 1;
     align-items: center;
     display: flex;
     justify-content: center;
+}
+
+.clip-it {
+    width: 100px;
+    border: 1px solid transparent;
+    background-color: rebeccapurple;
+    border-radius: 5px;
+    text-align: center;
+    cursor: pointer;
+    align-self: center;
+    margin-top: 30px;
+}
+
+.clip-it:disabled {
+    background-color: gray;
+    cursor: not-allowed;
+    color: #ddd;
+}
+
+.clip-characters {
+    display: flex;
+    padding: 10px 0px;
+    justify-content: space-around;
+    width: 100%;
+}
+
+.clip-info {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.clip-character {
+    margin: 5px;
+    background-color: #242729;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+    height: 100px;
+    width: 100px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+}
+
+.selected {
+    border: 2px solid #ddd;
+    font-weight: 600;
+}
+
+.clip-info-label {
+    text-align: center;
+}
+
+.time-stamp {
+    width: 100px;
 }
