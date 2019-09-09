@@ -1,7 +1,8 @@
 {
-    "previousVersion": "1.4.6",
+    "previousVersion": "1.5.0-dev",
     "settings": {
-        "isoPath": "C:\\Users\\gabes\\Desktop\\GC Games\\Super Smash Bros. Melee (USA) (En,Ja) (v1.02).iso",
-        "playbackDolphinPath": "C:\\Users\\gabes\\AppData\\Roaming\\Slippi Desktop App\\dolphin"
+        "isoPath": "/home/gfrankel/Desktop/gc_games/Super Smash Bros. Melee (USA) (En,Ja) (v1.02).iso",
+        "rootSlpPath": "/home/gfrankel/Desktop/slippi_files",
+        "playbackDolphinPath": "/home/gfrankel/Desktop/Slippi-FM-r18-2/Slippi-FM-r18/playback"
     }
 }

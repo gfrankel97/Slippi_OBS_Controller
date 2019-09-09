@@ -25,6 +25,12 @@ function validate_and_set_settings {
         exit 1
     fi
 
+    output_dir=$(jq -r .output_dir $(pwd)/settings/settings.json)
+    if [[ $output_dir = null ]]; then
+        echo -e "[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - output_dir)"
+        exit 1
+    fi
+
     path_to_dolphin_app_user_dir=$(jq -r .path_to_dolphin_app_user_dir $(pwd)/settings/settings.json)
     if [[ $path_to_dolphin_app_user_dir = null ]]; then
         echo -e "[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_dolphin_app_user_dir)"
@@ -55,11 +61,16 @@ function validate_and_set_settings {
         exit 1
     fi
 
+    if [[ ! -f "$(pwd)/settings/dolphin_gfx_settings.ini" ]]; then
+        echo -e "[${COLOR_RED}File Missing${COLOR_NONE}]: dolphin_gfx_settings.ini"
+        exit 1
+    fi
+
     if [[ ! -f "$(pwd)/settings/slippi_desktop_app_settings.json" ]]; then
         echo -e "[${COLOR_RED}File Missing${COLOR_NONE}]: slippi_desktop_app_settings.json"
         exit 1
     else
-        dolphin_bin=$(jq -r .settings.playbackDolphinPath $(pwd)/settings/slippi_desktop_app_settings.json)
+        dolphin_bin=$(jq -r .settings.playbackDolphinPath $(pwd)/settings/slippi_desktop_app_settings.json)/dolphin-emu
         if [[ $dolphin_bin = null ]]; then
             echo -e "[${COLOR_RED}Setting Missing${COLOR_NONE}] Setting not found (check slippi_desktop_app_settings.json - settings.playbackDolphinPath)"
             exit 1
@@ -88,24 +99,38 @@ function validate_and_set_settings {
 
 function init {
     #Kill running Slippi Desktop App and Dolphin instances
-    ps axf | grep slippi-desktop-app | grep -v grep | awk '{print "kill -9 " $1}' | sh
-    ps axf | grep dolphin-emu | grep -v grep | awk '{print "kill -9 " $1}' | sh
+    ps axf | grep slippi-desktop-app | grep -v grep | awk '{print "kill -9 " $1}' | sh | at now &> /dev/null
+    ps axf | grep dolphin-emu | grep -v grep | awk '{print "kill -9 " $1}' | sh | at now &> /dev/null
 
     #Validate settings and set variables
     validate_and_set_settings
+
+    clean_dump_dir
 
     #Copy Slippi Desktop App settings from script to application
     cp "$(pwd)/settings/slippi_desktop_app_settings.json" "${path_to_slippi_desktop_app_data_dir}/Settings"
 
     #Copy Dolphin.ini settings from script to application
     cp "$(pwd)/settings/dolphin_settings.ini" "${path_to_dolphin_app_config_dir}/Dolphin.ini"
+    cp "$(pwd)/settings/dolphin_gfx_settings.ini" "${path_to_dolphin_app_config_dir}/GFX.ini"
 
 }
 
+function clean_dump_dir {
+    rm -f "${path_to_dolphin_app_user_dir}/Logs/render_time.txt"
+    rm -f "${path_to_dolphin_app_user_dir}/Dump/Frames/frame*"
+    rm -f "${path_to_dolphin_app_user_dir}/Dump/Audio/*"
+    # rm -f "${path_to_dolphin_app_user_dir}/Dump/Audio/dspdump.wav"
+	mkdir -p "${path_to_dolphin_app_user_dir}/Dump/Frames"
+}
+
+
 function record_file {
+    # RETURNS OUTPUT FILE PATH
     local slp_file=$1
 
     #Get frames in Slippi file
+    # TODO: Pull out this into its own function
     local offset=$(strings -d -t d -n 9 $file | grep -A1 'lastFramel' | grep -v "lastFramel"| cut -d: -f1 | cut -d ' ' -f1)
     offset="$(($offset - 4))"
     if [ "$offset" -eq -4 ]; then
@@ -118,46 +143,74 @@ function record_file {
 	local b=$(xxd -p -l1 -s $offset $file)
 	#echo "$a"
 	#echo "$b"
-	local c="$((16#$a * 256 + 16#$b))"
-	#echo "$c"
-	local d="$((10 + $c / 60))"
+	local frame_count="$((16#$a * 256 + 16#$b))"
+	local d="$((10 + $frame_count / 60))"
 	#echo "$d"
 
-    local frames_file=$path_to_dolphin_app_user_dir/Logs/render_time.txt
-    local dump_folder="${path_to_slp_files}/dump"
-    local dump_file=$dump_folder/frames/frame*
-    local audio_files=$dump_folder/audio/*
-    local audio_file=$dump_folder/audio/dspdump.wav
-
-    rm -f $frames_file
-        rm -f $dump_file
-        rm -f $audio_files
-        rm -f $audio_file
-	mkdir -p $dump_folder/Frames
-
     # Launch slippi desktop app so it will launch dolphin, then kill slippi desktop app
-    echo $path_to_slippi_desktop_app
-	# $($path_to_slippi_desktop_app) $file
-    #& sleep 3s
-	# job2kill=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk '{print $1}')
-	# while [ -z $job2kill ]; do
-	# 	sleep 1s
-	# 	job2kill=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | grep r18_$5 | awk '{print $1}')
-	# done
-	# kill -9 $job2kill
+    # TODO: Seems to be opening dolphin and slippi twice?
+    # TODO: Find better way to get PID to kill
+
+    clean_dump_dir
+	$path_to_slippi_desktop_app $file & sleep 3s
+	local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
+	while [ -z $slippi_desktop_app_process ]; do
+		sleep 1s
+		slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | grep $file | awk 'NR==1{print $1}')
+	done
+	kill -9 $slippi_desktop_app_process | at now &> /dev/null
+
+    # Wait for the render_time.txt file to be created by dolphin
+    while ! test -f $frames_file; do 
+		sleep 1s
+		echo "Waiting in job: ${file} for file ${frames_file}"
+	done
+	echo -n "Found render_time.txt in job: ${file}"
+    grep -vc '^$' $frames_file
+    echo -e "\n\nHERE 1\n\n"
+    echo $(grep -vc '^$' $frames_file)
+	local current_frame=$(grep -vc '^$' $frames_file)
+    echo -e "\n\nHERE 2\n\n"
+	local frame_count="$(($frame_count + 298))"
+	echo -e "\n\nHERE 3\n\n"
+
+
+	# Run until the number of frames rendered is the length of the slippi file
+	local timeout=$((SECONDS+490))
+    echo "CURRENT FRAME: ${current_frame}"
+    echo "FRAME COUNT: ${frame_count}"
+	while [ "$current_frame" -lt $frame_count ]
+	do
+		current_frame=$(grep -vc '^$' $frames_file)
+    
+		#Timeout loop after 8 minutes
+		if [ $SECONDS -gt $timeout ]; then
+			break
+		fi
+	done
+
+    local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep  | awk '{print $1}')
+	kill -9 $dolphin_process | at now &> /dev/null
+
+    echo "TO RETURN: "${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)
+    return ${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)
 }
 
 
 function process_slp_files_in_folder {
     for file in ${path_to_slp_files}/*; do
-        #$(basename $file) to get only filename, not full path
-        echo -e $file
+        if test -f $file; then
+            echo -e "[${COLOR_GREEN}Start - File Recording${COLOR_NONE}]: ${file}"
+            # avi_output=$(record_file $file)
+            record_file $file
+            echo -e "[${COLOR_GREEN}Finish - File Recording${COLOR_NONE}]: ${file}"
+            echo -e "[${COLOR_GREEN}Start - File Conversion${COLOR_NONE}]: Convert video format from AVI to MP4"
 
-        record_file $file
-
-
+        fi
     done
 
+
+    echo -e "[${COLOR_GREEN}Script Complete${COLOR_NONE}]: Exiting Successfully"
 }
 
 
