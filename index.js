@@ -10,25 +10,31 @@ const characters = require('slp-parser-js/dist/melee/characters');
 const script_settings = require('./settings.json');
 
 var child_process, watcher;
+let count = 0;
 
 
 const gameByPath = {};
 
 script = script => {
-    watcher.on('all', async(event, path) => {
+    console.log('script');
+    watcher.on('change', async(path) => {
         let gameState, settings, stats, frames, latestFrame, gameEnd, game;
+        let hasGameEnded = false;
         try {
             game = _.get(gameByPath, [path, 'game']);
             if (!game) {
                 //hacky way to get clipping after games working. We need to set a flag in clip.js to whether or not we're in a game
+                game = new SlippiGame.default(path);
+                console.log(game);
+                console.log(count);
+                count++;
                 child_process.send({ message_type: "check_for_clip" });
                 console.log(chalk.green(`[New File]`), `at: ${path}`);
-                game = new SlippiGame.default(path);
-                const firstFrame = game.getLatestFrame();
-                if (firstFrame.players) {
-                    // need to set flag and make sure this gets set properly
-                    activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
-                }
+                // const firstFrame = game.getLatestFrame();
+                // if (firstFrame && firstFrame.players) {
+                //     // need to set flag and make sure this gets set properly
+                //     activePorts = firstFrame.players.filter(player => player !== undefined).map(player => player.pre.playerIndex);
+                // }
 
                 settings = game.getSettings();
                 update_stream_assets_icon(settings);
@@ -47,7 +53,6 @@ script = script => {
             gameState = _.get(gameByPath, [path, 'state']);
 
             stats = game.getStats();
-            // console.log(SlippiGame.common.didLoseStock(frameOne, frameTwo));
 
             frames = game.getFrames();
             latestFrame = game.getLatestFrame();
@@ -57,11 +62,11 @@ script = script => {
             return;
         }
 
-        if (!gameState.settings && settings) {
-
+        if (!gameState.settings && settings && settings.players) {
+            hasGameEnded = false;
             console.log(chalk.green(`[Game Start]`), `New game has started`);
             const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
-            const game_meta = {
+            let game_meta = {
                 character1: characters.getCharacterName(settings.players[0].characterId),
                 tag1: settings.players[0].nametag ? settings.players[0].nametag : "",
                 color1: characters.getCharacterColorName(settings.players[0].characterId, settings.players[0].characterColor),
@@ -70,6 +75,8 @@ script = script => {
                 color2: characters.getCharacterColorName(settings.players[1].characterId, settings.players[1].characterColor),
                 stage: stages.getStageName(settings.stageId)
             }
+
+            console.log(!!game_meta);
 
             process.send({
                 message_type: 'new game',
@@ -81,17 +88,19 @@ script = script => {
                 }
             });
 
+            console.log(!!game_meta);
+
             await update_stream_assets_scene(script_settings.SCENES[script_settings.SCENES.indexOf("Slippi")]);
             child_process.send({
                 message_type: "new_game",
                 current_slippi_file: path,
                 game_meta
             });
-            console.log(settings);
             gameState.settings = settings;
         }
 
-        if (gameEnd) {
+        if (gameEnd && !hasGameEnded) {
+            hasGameEnded = true;
             const endTypes = {
                 1: "TIME!",
                 2: "GAME!",
@@ -117,7 +126,11 @@ script = script => {
 update_stream_assets_icon = (game_settings) => {
     if (!game_settings) {
         return;
+    } else if (!game_settings.players) {
+        console.log('ova here');
+        return;
     }
+
 
     const player1 = game_settings.players[0];
     const player2 = game_settings.players[1];
@@ -132,15 +145,16 @@ update_stream_assets_icon = (game_settings) => {
     //TO DO: Check for file and make sure it exists, if color doesn't exist, default to default
     fs.copyFileSync(
         `${script_settings.CHARACTER_ICON_SOURCE}${character_one_name.toLowerCase()}-${character_one_color.toLowerCase()}.png`,
-        `${script_settings.STREAM_OVERLAY_FILE_PATH} ${script_settings.PLAYER_ONE_ICON_FILE_NAME}`);
+        `${script_settings.STREAM_OVERLAY_FILE_PATH}${script_settings.PLAYER_ONE_ICON_FILE_NAME}`);
 
     fs.copyFileSync(
       `${script_settings.CHARACTER_ICON_SOURCE}${character_two_name.toLowerCase()}-${character_two_color.toLowerCase()}.png`,
-      `${script_settings.STREAM_OVERLAY_FILE_PATH} ${script_settings.PLAYER_TWO_ICON_FILE_NAME}`);
+      `${script_settings.STREAM_OVERLAY_FILE_PATH}${script_settings.PLAYER_TWO_ICON_FILE_NAME}`);
 }
 
 update_stream_assets_scene = (scene) => {
     return new Promise((resolve, reject) => {
+            console.log(chalk.red(scene));
             console.log(chalk.green(`[Scene Switching]`), `Scene:`, scene);
             fs.writeFileSync(script_settings.STREAM_OVERLAY_FILE_PATH + script_settings.SCENE_FILE_NAME, scene);
             resolve();
@@ -174,6 +188,7 @@ update_stream_assets_stats = (stats) => {
 
 
 init = () => {
+    console.log('init');
     process.send({ message_type: 'init' });
     if (!fs.existsSync(script_settings.SLIPPI_FILE_PATH)) {
         console.error(chalk.red(`[Settings Error]`), `Path ${script_settings.SLIPPI_FILE_PATH} does not exist. Check your settings.`);
@@ -193,21 +208,20 @@ init = () => {
 
 
 const main = () => {
-    console.log('hitting main');
     init();
     script();
 }
 
 process.on('message', message => {
-    console.log(message);
-    switch (message) {
+    console.log(chalk.yellow('getting a message'));
+    console.log(message.message_type);
+    switch (message.message_type) {
         case 'start': {
-            console.log('starting');
             main();
             break;
         }
         case 'clip': {
-            child_process.send({ message_type: "prompt_for_clip" });
+            child_process.send({ message_type: "get_clip_ui", payload: message });
         }
     }
 });

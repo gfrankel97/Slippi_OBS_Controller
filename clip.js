@@ -54,15 +54,13 @@ get_clip_information = () => {
 queue_clip_info = async() => {
     clip_data = await get_clip_information();
     clip_queued = true;
-    // $('#clip-status').text('Clip successfully queued');
     console.log(chalk.green(`[Clip Queued]`), `Clip successfully queued.`);
 }
 
 prompt_for_clip = () => process_reader.question(`Hit Enter to clip it.\n`, queue_clip_info);
 
-
 create_clip = (clip_information) => {
-    let clip_file_path = clip_information.tag ? `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.tag}_${clip_information.character}_${game_meta.stage}_${clip_information.time}` : `${script_settings.SLIPPI_CLIPS_FILE_PATH}\\${clip_information.character}_${game_meta.stage}_${clip_information.time}`;
+    let clip_file_path = `${script_settings.SLIPPI_CLIPS_FILE_PATH}${clip_information.tag ? `${clip_information.tag}_` : ''}${clip_information.character}_${game_meta.stage}_${clip_information.time}`
     let counter = 1;
     while(fs.existsSync(clip_file_path)) {
         console.log(chalk.yellow(`[Clip Name Already Exists]`), `${clip_file_path} already exists, renaming to: ${clip_file_path}_${counter}.slp`)
@@ -80,6 +78,7 @@ correct_stage_names = (stage_name) => {
         case "Pokémon Stadium":
             return "Pokemon Stadium"
             break;
+        default: return stage_name;
     }
 }
 
@@ -97,8 +96,15 @@ process.on('message', message => {
             }
             break;
         case "prompt_for_clip":
-            console.log('prompt');
             prompt_for_clip();
+            break;
+
+        case "get_clip_ui":
+            const { player, time } = message.payload;
+            const tag = player === 1 ? game_meta.tag1 : game_meta.tag2;
+            const character = player === 1 ? game_meta.character1 : game_meta.character2;
+            const clip_information = { tag, character, stage: game_meta.stage, time: time.replace(':', '.') };
+            create_clip(clip_information);
             break;
         default:
             break;
