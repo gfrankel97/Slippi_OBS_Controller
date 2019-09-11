@@ -56,6 +56,12 @@ function validate_and_set_settings {
         exit 1
     fi
 
+    resolution_scale_factor=$(jq -r .resolution_scale_factor $(pwd)/settings/settings.json)
+    if [[ $resolution_scale_factor = null ]]; then
+        echo -e "[${COLOR_YELLOW}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - resolution_scale_factor), defaulting to '${COLOR_BLUE}2${COLOR_NONE}'"
+        resolution_scale_factor="2"
+    fi
+
     if [[ ! -f "$(pwd)/settings/dolphin_settings.ini" ]]; then
         echo -e "[${COLOR_RED}File Missing${COLOR_NONE}]: dolphin_settings.ini"
         exit 1
@@ -94,10 +100,11 @@ function validate_and_set_settings {
         
     fi
 
-    echo -e "[${COLOR_GREEN}Settings Validated${COLOR_NONE}]: $(pwd)/settings/settings.json"
+    echo -e "\t[${COLOR_GREEN}Settings Validated${COLOR_NONE}]: $(pwd)/settings/settings.json"
 }
 
 function init {
+    echo -e "[${COLOR_GREEN}Script Init - Start${COLOR_NONE}]"
     #Kill running Slippi Desktop App and Dolphin instances
     ps axf | grep slippi-desktop-app | grep -v grep | awk '{print "kill -9 " $1}' | sh | at now &> /dev/null
     ps axf | grep dolphin-emu | grep -v grep | awk '{print "kill -9 " $1}' | sh | at now &> /dev/null
@@ -105,13 +112,15 @@ function init {
     #Validate settings and set variables
     validate_and_set_settings
 
-    #Copy Slippi Desktop App settings from script to application
     cp "$(pwd)/settings/slippi_desktop_app_settings.json" "${path_to_slippi_desktop_app_data_dir}/Settings"
+    echo -e "\t[${COLOR_GREEN}Settings Copied${COLOR_NONE}]: Copy settings/slippi_desktop_app_settings.json to Slippi Desktop App directory"
 
-    #Copy Dolphin.ini settings from script to application
     cp "$(pwd)/settings/dolphin_settings.ini" "${path_to_dolphin_app_config_dir}/Dolphin.ini"
+    echo -e "\t[${COLOR_GREEN}Settings Copied${COLOR_NONE}]: Copy settings/dolphin_settings.ini to Dolphin"
     cp "$(pwd)/settings/dolphin_gfx_settings.ini" "${path_to_dolphin_app_config_dir}/GFX.ini"
+    echo -e "\t[${COLOR_GREEN}Settings Copied${COLOR_NONE}]: Copy GFX settings/dolphin_gfx_settings.ini to Dolphin"
 
+    echo -e "[${COLOR_GREEN}Script Init - Complete${COLOR_NONE}]"
 }
 
 function clean_dump_dir {
@@ -186,59 +195,61 @@ function record_file {
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep  | awk '{print $1}')
 	kill -9 $dolphin_process | at now &> /dev/null
 
-    echo "TO RETURN: "${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)
-    echo "TO RETURN: "${dump_folder}/Audio/dspdump.wav
     current_avi_file="${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)"
     current_audio_file_wav="${dump_folder}/Audio/dspdump.wav"
 }
 
+function set_video_filter {
+    echo -e "\t[${COLOR_GREEN}Set FFmpeg Filter - Start${COLOR_NONE}]"
+    local log_resolution=""
+    case ${resolution_scale_factor} in 
+        "1")
+            video_filter="scale=584:480,pad=853:480:135"
+            log_resolution="853x480 (SD)"
+            ;;
+        "2")
+            video_filter="scale=876:720,pad=1280:720:202"
+            log_resolution="1280x720 (HD 720p)"
+            ;;
+        "3")
+            video_filter="scale=1314:1080,pad=1920:1080:303"
+            log_resolution="1920x1080 (HD 1080p)"
+            ;;
+        *)
+            echo -e "[${COLOR_GREEN}Error Scaling - File Recording${COLOR_NONE}]: Scale factor must be one of: '1', '2', '3'"
+            exit 1
+            ;;
+    esac
+    echo -e "\t[${COLOR_GREEN}Set FFmpeg Filter - Finish${COLOR_NONE}]: set to ${COLOR_BLUE}${log_resolution}${COLOR_NONE}"
+}
+
 function convert_wav_and_avi_to_mp4 {
     local avi_file=$1
-    local mp3_file=$2
-    
+    local wav_file=$2
 
-    echo "Starting: ${output_dir}/${original_file_name}.mp4"
-
-    ffmpeg -y -i ${avi_file} -i ${mp3_file} -filter_complex '[0:v]scale=1168:960'  "${output_dir}/${original_file_name}.mp4" > /dev/null
-    # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
-    # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
+    set_video_filter
+    ffmpeg -loglevel panic -crf 20 -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${original_file_name}.mp4"
 }
 
-function convert_wav_to_mp3 {
-    local audio_file=$1
-
-    mkdir "${output_dir}/temp"
-
-    ffmpeg -y -i ${audio_file} "${output_dir}/temp/temp.mp3" > /dev/null
-    current_audio_file_mp3="${output_dir}/temp/temp.mp3"
-}
 
 function process_slp_files_in_folder {
     for file in ${path_to_slp_files}/*; do
         if test -f $file; then
             original_file_name=$(basename $file | cut -f1 -d '.')
-            echo -e "[${COLOR_GREEN}Clean - File Recording${COLOR_NONE}]: Output and Temp directories cleaned successfully"
+            echo -e "[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Output and Temp directories cleaned successfully"
             clean_dump_dir
 
-            echo -e "[${COLOR_GREEN}Start - File Recording${COLOR_NONE}]: ${original_file_name}"
+            echo -e "[${COLOR_GREEN}File Recording - Start${COLOR_NONE}]: ${original_file_name}"
             record_file $file
 
             if [ $? -ne 0 ];then
-                echo -e "[${COLOR_RED}Failed - File Recording${COLOR_NONE}]: ${original_file_name}"
+                echo -e "\t[${COLOR_RED}Failed - File Recording${COLOR_NONE}]: ${original_file_name}"
             fi
-            echo -e "[${COLOR_GREEN}Finish - File Recording${COLOR_NONE}]: ${original_file_name}"
-            echo -e "[${COLOR_GREEN}Start - Audio Conversion${COLOR_NONE}]: Convert audio format from WAV to MP3"
-            convert_wav_to_mp3 $current_audio_file_wav
-            echo -e "[${COLOR_GREEN}Finish - Audio Conversion${COLOR_NONE}]: Convert audio format from WAV to MP3"
+            echo -e "[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${original_file_name}"
 
-            echo -e "[${COLOR_GREEN}Start - File Combine${COLOR_NONE}]: Combine AVI and MP3 to create output file: ${output_dir}/${original_file_name}.mp4"
-            convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_mp3
-            echo -e "[${COLOR_GREEN}Finish - File Combine${COLOR_NONE}]: Combine AVI and MP3 to create output file: ${output_dir}/${original_file_name}.mp4"
-
-
-
-
-
+            echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${output_dir}/${original_file_name}.mp4"
+            convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_wav
+            echo -e "[${COLOR_GREEN}Combine Audio and Video - Finish${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${output_dir}/${original_file_name}.mp4"
         fi
     done
 

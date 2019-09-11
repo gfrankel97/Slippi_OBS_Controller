@@ -1,4 +1,17 @@
 automatically look for and set Wii IPs in connections
-String replacements in dolphin.ini and gfx.ini
+
+Parallelize
+
+Set Dolphin INI settings based on json file so no user has to edit INI files
+    String replacements in dolphin.ini and gfx.ini
+
 Dynamic resolution settings
+
 Add black bars on the side to make full HD resolution
+    Done
+Figure out how to programatically control dolphin internal resolution
+    Get from EFB Scale / 2
+
+More error handling/checking
+
+Tabulate logs
