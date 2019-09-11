@@ -5,3 +5,6 @@ cut
 grep
 strings
 xxd
+
+dolpin-emu binary #$(which dolphin-emu) 
+    - turn Gecko Code for melee music off

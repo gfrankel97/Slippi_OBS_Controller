@@ -105,8 +105,6 @@ function init {
     #Validate settings and set variables
     validate_and_set_settings
 
-    clean_dump_dir
-
     #Copy Slippi Desktop App settings from script to application
     cp "$(pwd)/settings/slippi_desktop_app_settings.json" "${path_to_slippi_desktop_app_data_dir}/Settings"
 
@@ -118,16 +116,20 @@ function init {
 
 function clean_dump_dir {
     rm -f "${path_to_dolphin_app_user_dir}/Logs/render_time.txt"
-    rm -f "${path_to_dolphin_app_user_dir}/Dump/Frames/frame*"
+    rm -f "${path_to_dolphin_app_user_dir}/Dump/Frames/*"
     rm -f "${path_to_dolphin_app_user_dir}/Dump/Audio/*"
-    # rm -f "${path_to_dolphin_app_user_dir}/Dump/Audio/dspdump.wav"
+    rm -f "${path_to_dolphin_app_user_dir}/Dump/Audio/dspdump.wav"
+    rm -rf ${output_dir}/temp
 	mkdir -p "${path_to_dolphin_app_user_dir}/Dump/Frames"
+    mkdir ${output_dir}/temp
 }
 
 
 function record_file {
     # RETURNS OUTPUT FILE PATH
     local slp_file=$1
+    local frames_file="${path_to_dolphin_app_user_dir}/Logs/render_time.txt"
+    local dump_folder="${path_to_dolphin_app_user_dir}/Dump"
 
     #Get frames in Slippi file
     # TODO: Pull out this into its own function
@@ -148,11 +150,9 @@ function record_file {
 	#echo "$d"
 
     # Launch slippi desktop app so it will launch dolphin, then kill slippi desktop app
-    # TODO: Seems to be opening dolphin and slippi twice?
     # TODO: Find better way to get PID to kill
 
-    clean_dump_dir
-	$path_to_slippi_desktop_app $file & sleep 3s
+	$path_to_slippi_desktop_app $file | at now &> /dev/null & sleep 3s
 	local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
 	while [ -z $slippi_desktop_app_process ]; do
 		sleep 1s
@@ -165,20 +165,14 @@ function record_file {
 		sleep 1s
 		echo "Waiting in job: ${file} for file ${frames_file}"
 	done
-	echo -n "Found render_time.txt in job: ${file}"
-    grep -vc '^$' $frames_file
-    echo -e "\n\nHERE 1\n\n"
-    echo $(grep -vc '^$' $frames_file)
+
+
 	local current_frame=$(grep -vc '^$' $frames_file)
-    echo -e "\n\nHERE 2\n\n"
 	local frame_count="$(($frame_count + 298))"
-	echo -e "\n\nHERE 3\n\n"
 
 
 	# Run until the number of frames rendered is the length of the slippi file
 	local timeout=$((SECONDS+490))
-    echo "CURRENT FRAME: ${current_frame}"
-    echo "FRAME COUNT: ${frame_count}"
 	while [ "$current_frame" -lt $frame_count ]
 	do
 		current_frame=$(grep -vc '^$' $frames_file)
@@ -193,18 +187,58 @@ function record_file {
 	kill -9 $dolphin_process | at now &> /dev/null
 
     echo "TO RETURN: "${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)
-    return ${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)
+    echo "TO RETURN: "${dump_folder}/Audio/dspdump.wav
+    current_avi_file="${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)"
+    current_audio_file_wav="${dump_folder}/Audio/dspdump.wav"
 }
 
+function convert_wav_and_avi_to_mp4 {
+    local avi_file=$1
+    local mp3_file=$2
+    
+
+    echo "Starting: ${output_dir}/${original_file_name}.mp4"
+
+    ffmpeg -y -i ${avi_file} -i ${mp3_file} \
+       "${output_dir}/${original_file_name}.mp4" > /dev/null
+    # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
+    # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
+}
+
+function convert_wav_to_mp3 {
+    local audio_file=$1
+
+    mkdir "${output_dir}/temp"
+
+    ffmpeg -y -i ${audio_file} "${output_dir}/temp/temp.mp3" > /dev/null
+    current_audio_file_mp3="${output_dir}/temp/temp.mp3"
+}
 
 function process_slp_files_in_folder {
     for file in ${path_to_slp_files}/*; do
         if test -f $file; then
-            echo -e "[${COLOR_GREEN}Start - File Recording${COLOR_NONE}]: ${file}"
-            # avi_output=$(record_file $file)
+            original_file_name=$(basename $file | cut -f1 -d '.')
+            echo -e "[${COLOR_GREEN}Clean - File Recording${COLOR_NONE}]: Output and Temp directories cleaned successfully"
+            clean_dump_dir
+
+            echo -e "[${COLOR_GREEN}Start - File Recording${COLOR_NONE}]: ${original_file_name}"
             record_file $file
-            echo -e "[${COLOR_GREEN}Finish - File Recording${COLOR_NONE}]: ${file}"
-            echo -e "[${COLOR_GREEN}Start - File Conversion${COLOR_NONE}]: Convert video format from AVI to MP4"
+
+            if [ $? -ne 0 ];then
+                echo -e "[${COLOR_RED}Failed - File Recording${COLOR_NONE}]: ${original_file_name}"
+            fi
+            echo -e "[${COLOR_GREEN}Finish - File Recording${COLOR_NONE}]: ${original_file_name}"
+            echo -e "[${COLOR_GREEN}Start - Audio Conversion${COLOR_NONE}]: Convert audio format from WAV to MP3"
+            convert_wav_to_mp3 $current_audio_file_wav
+            echo -e "[${COLOR_GREEN}Finish - Audio Conversion${COLOR_NONE}]: Convert audio format from WAV to MP3"
+
+            echo -e "[${COLOR_GREEN}Start - File Combine${COLOR_NONE}]: Combine AVI and MP3 to create output file: ${output_dir}/${original_file_name}.mp4"
+            convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_mp3
+            echo -e "[${COLOR_GREEN}Finish - File Combine${COLOR_NONE}]: Combine AVI and MP3 to create output file: ${output_dir}/${original_file_name}.mp4"
+
+
+
+
 
         fi
     done
@@ -216,6 +250,7 @@ function process_slp_files_in_folder {
 
 init
 process_slp_files_in_folder
+exit 0
 
 
 
