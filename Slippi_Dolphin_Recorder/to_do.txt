@@ -1,2 +1,4 @@
 automatically look for and set Wii IPs in connections
-String replacements in dolphin.ini
+String replacements in dolphin.ini and gfx.ini
+Dynamic resolution settings
+Add black bars on the side to make full HD resolution

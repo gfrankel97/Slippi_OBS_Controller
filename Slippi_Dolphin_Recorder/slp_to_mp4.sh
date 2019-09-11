@@ -199,8 +199,7 @@ function convert_wav_and_avi_to_mp4 {
 
     echo "Starting: ${output_dir}/${original_file_name}.mp4"
 
-    ffmpeg -y -i ${avi_file} -i ${mp3_file} \
-       "${output_dir}/${original_file_name}.mp4" > /dev/null
+    ffmpeg -y -i ${avi_file} -i ${mp3_file} -filter_complex '[0:v]scale=1168:960'  "${output_dir}/${original_file_name}.mp4" > /dev/null
     # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
     # ffmpeg -y -i $mp3_file -itsoffset $input_offset -i $avi_file -map 1:v -map 0:a -c:a? copy -c:v copy "${output_dir}/${original_file_name}.mp4"
 }
