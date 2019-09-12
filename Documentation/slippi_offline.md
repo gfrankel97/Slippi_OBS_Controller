@@ -1,7 +1,7 @@
 # Using Slippi without Internet Access
 
 ## The Need
-My Melee scene holds its locals at a college, which has strict network security, meaning we could not use the college network to hook up Slippi. Unacceptable! Slippi is the future and by god, we were going to use it.
+My Melee scene holds its locals at a college, which has strict network security, meaning we could not use the college network to hook up Slippi. Unacceptable! Slippi is the future and by god, we are going to use it.
 
 ## Background
 A limitation of the Wii is that it is unable to connect to a network if that network is not connected to the internet. The Wii forces you to run a connection test after selecting a network, and if that connection test fails, the Wii does not let you select that network. This guide provides a workaround.
