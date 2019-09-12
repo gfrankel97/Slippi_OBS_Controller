@@ -19,18 +19,19 @@ A limitation of the Wii is that it is unable to connect to a network if that net
 #### Wii
 1) Connect Wii to 2.4GHz network wifi on router using the Wii system settings. Remember the network connection you used (1-3), this will be important later!
      * Many modern routers default to `802.11n` or `802.11n/g/b` wireless mode on the 2.4GHz channel, but the Wii is only capable of using `802.11b` and `802.11g` wireless modes. Most routers will allow you to switch this to a `802.11b/g`, `802.11b`, or `802.11g` only wireless mode, but requires poking around in the router's settings.
-     * Example: INSERT_ROUTER_CONFIG_IMAGE
+     * Example: 
+     ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/slippi_network_band.png)
 2) Run connection test, which will fail, as expected, since it is not connected to the internet.
 3) Exit Settings and load into Homebrew
 4) Load Offline Network Enabler
-     * INSERT_OFFLINE_ENABLER_IMAGE_HERE
+     * ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/offline_enabler_1.JPG)
 5) Select `IOS36` by d-pad right or left in the Offline Network Enabler
-     * INSERT_IOS36_IMAGE_HERE
+     * ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/offline_enabler_2.JPG)
 6) Hit `A` to reload IOS
      * On white Wiis (from what I've seen) shows an error: `Informing Wii that I am God... Error! Identify as SU failed, press any button to continue`
      * This is fine and does NOT affect the Offline Network Enabler.
 7) Recall the network connection number you attempted to connect to earlier and hit `A`, `B`, or `1/Y` accordingly
-     * INSERT IMAGE HERE
+     * ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/offline_enabler_3.JPG)
 8) Upon exiting to Homebrew, the wifi symbol in the bottom-right of Homebrew should blink and then and stay active.
      * Sometimes, this requires a restart of the Wii.
 
@@ -38,7 +39,7 @@ A limitation of the Wii is that it is unable to connect to a network if that net
 9) Connect your computer to the same 2.4GHz network as the Wiis.
     * Most computers will support connecting to multiple networks, so you can still stream and have internet connectivity from one computer.
 10)  Connections to the Wii will NOT be discovered by the Slippi Desktop App automatically. For the Wiis you wish to connect to, the local IPs must be manually entered in Slippi Desktop App > Stream From Console > Add Connection
-    * ADD_CONNECTION_IMAGE
+    * ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/add_wii_connection_to_slippi_desktop_app.png)
     * Gathering the IPs of the Wiis you wish to connect to can be done in a variety of ways. I prefer `nmap -sn 192.168.1.0/24` for Unix/macOS users, but you can always go back to the router admin page and look for current users.
 
 
