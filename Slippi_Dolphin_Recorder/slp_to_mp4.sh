@@ -120,7 +120,7 @@ function init {
     cp "$(pwd)/settings/dolphin_gfx_settings.ini" "${path_to_dolphin_app_config_dir}/GFX.ini"
     echo -e "\t[${COLOR_GREEN}Settings Copied${COLOR_NONE}]: Copy GFX settings/dolphin_gfx_settings.ini to Dolphin"
 
-    echo -e "[${COLOR_GREEN}Script Init - Complete${COLOR_NONE}]"
+    echo -e "[${COLOR_GREEN}Script Init - Complete${COLOR_NONE}]\n"
 }
 
 function clean_dump_dir {
@@ -245,7 +245,7 @@ function process_slp_files_in_folder {
             if [ $? -ne 0 ];then
                 echo -e "\t[${COLOR_RED}Failed - File Recording${COLOR_NONE}]: ${original_file_name}"
             fi
-            echo -e "[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${original_file_name}"
+            echo -e "[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${original_file_name}\n"
 
             echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${output_dir}/${original_file_name}.mp4"
             convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_wav
