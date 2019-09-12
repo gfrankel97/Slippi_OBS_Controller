@@ -13,4 +13,13 @@ Figure out how to programatically control dolphin internal resolution
 
 More error handling/checking
 
-Tabulate logs
+Improve logging with timers
+
+Filter short games
+
+seconds to minutes conversions on logs
+
+Make recursive through folders and updates names accordingly
+    After we get the node script dumping the structure we want
+
+Option to record all > convert all as opposed to record, convert, record convert...
