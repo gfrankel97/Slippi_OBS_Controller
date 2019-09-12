@@ -228,7 +228,7 @@ function convert_wav_and_avi_to_mp4 {
     local wav_file=$2
 
     set_video_filter
-    ffmpeg -loglevel panic -crf 20 -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${original_file_name}.mp4"
+    ffmpeg -loglevel panic -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${original_file_name}.mp4"
 }
 
 
