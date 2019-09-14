@@ -23,3 +23,8 @@ Make recursive through folders and updates names accordingly
     After we get the node script dumping the structure we want
 
 Option to record all > convert all as opposed to record, convert, record convert...
+
+Refactor to use Parallel
+Specify config on command line for Dolphin so we dont have to create and keep track of which dolphin directory it's going in
+    maybe not possible due to slippi-desktop-app opening dolphin
+    cut out slippi desktoip app

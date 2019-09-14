@@ -34,13 +34,14 @@ A limitation of the Wii is that it is unable to connect to a network if that net
      * ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/offline_enabler_3.JPG)
 8) Upon exiting to Homebrew, the wifi symbol in the bottom-right of Homebrew should blink and then and stay active.
      * Sometimes, this requires a restart of the Wii.
+9) Boot Slippi-Nintendont as usual.
 
 #### Slippi Desktop App
-9) Connect your computer to the same 2.4GHz network as the Wiis.
+10) Connect your computer to the same 2.4GHz network as the Wiis.
     * Most computers will support connecting to multiple networks, so you can still stream and have internet connectivity from one computer.
-10)  Connections to the Wii will NOT be discovered by the Slippi Desktop App automatically. For the Wiis you wish to connect to, the local IPs must be manually entered in Slippi Desktop App > Stream From Console > Add Connection
+11)   Connections to the Wii will NOT be discovered by the Slippi Desktop App automatically. For the Wiis you wish to connect to, the local IPs must be manually entered in Slippi Desktop App > Stream From Console > Add Connection
     ![](https://github.com/gfrankel97/Slippi_OBS_Controller/blob/bash/Documentation/images/add_wii_connection_to_slippi_desktop_app.png)
-    * Gathering the IPs of the Wiis you wish to connect to can be done in a variety of ways. I prefer `nmap -sn 192.168.1.0/24` for Unix/macOS users, but you can always go back to the router admin page and look for current users.
+    * Gathering the IPs of the Wiis you wish to connect to can be done in a variety of ways. I prefer `nmap -sn 192.168.1.0/24` for Unix/macOS users, but you can always go back to the router admin page and look for current users/devices.
 
 
 

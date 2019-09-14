@@ -155,6 +155,11 @@ function record_file {
     local slp_file=$1
     local dolphin_path=$2
     local frames_file="${dolphin_path}/User/Logs/render_time.txt"
+    if [ ! -f $frames_file ]; then
+        # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]: Frames File Exists"
+        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frames File does NOT Exist"
+    fi
+
     local dump_folder="${dolphin_path}/User/Dump"
 
     #Get frames in Slippi file
@@ -184,7 +189,7 @@ function record_file {
     echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Slippi Desktop App set to use: ${current_parallel_dolphin_path}"
     echo -e "[${COLOR_GREEN}File Recording - Init Finish${COLOR_NONE}]\n"
     echo -e "[${COLOR_GREEN}File Recording - Start${COLOR_NONE}]: ${COLOR_BLUE}${file}${COLOR_NONE}"
-	$path_to_slippi_desktop_app $slp_file | at now &> /dev/null & sleep 3s
+	$path_to_slippi_desktop_app $slp_file | at now &> /dev/null & sleep 5s
     
 	local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
 	while [ -z $slippi_desktop_app_process ]; do
@@ -201,14 +206,36 @@ function record_file {
 
 
 	local current_frame=$(grep -vc '^$' $frames_file)
+    if [ $? -ne 0 ]; then
+        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Problem Current Frame: $current_frame"
+    fi
+
 	local frame_count="$(($frame_count + 298))"
 
 
+    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]: Frame Count: $frame_count"
+    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]: Current Frame: $current_frame"
+
+    if [ -z "$current_frame" ]; then
+        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Current Frame is empty: $current_frame"
+    fi
+
+    if [ -z "$frame_count" ]; then
+        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frame Count is empty: $current_frame"
+    fi
+
 	# Run until the number of frames rendered is the length of the slippi file
 	local timeout=$((SECONDS+490))
-	while [ "$current_frame" -lt $frame_count ]
-	do
+	while [ $current_frame -lt $frame_count ]; do
+        if [ ! -f $frames_file ]; then
+            # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]: Frames File Exists"
+            echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frames File does NOT Exist"
+        fi
 		current_frame=$(grep -vc '^$' $frames_file)
+        if [ $? -ne 0 ]; then
+            echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frames File's current frames are empty"
+            cat $frames_file
+        fi
     
 		#Timeout loop after 8 minutes
 		if [ $SECONDS -gt $timeout ]; then
@@ -221,11 +248,12 @@ function record_file {
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path | awk '{print $1}')
 	kill -9 $dolphin_process | at now &> /dev/null
 
+    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Killing dolphin: $(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path)"
     local current_avi_file="${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)"
     local current_audio_file_wav="${dump_folder}/Audio/dspdump.wav"
     local base_file_name=$(basename $slp_file)
 
-    sed -i "\:$base_file_name:d" dolphin_jobs.txt
+    # sed -i "\:$base_file_name:d" dolphin_jobs.txt
 
     base_file_name=$(echo $base_file_name | cut -d'.' -f1)
     convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_wav $base_file_name
@@ -278,8 +306,8 @@ function init_parallelism {
 
 function set_path_to_parallel_dolphin {
     for ((index=1;index<=$parallelism;index++)); do
-        echo -e "\t[${COLOR_YELLOW}Init Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: "$(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')
-        if [ -z $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}') ] && [ -z $(ps axf | grep ffmpeg | grep playback_${index} | grep -v grep | awk '{print $6}')]; then
+        echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
+        if [ -z "$(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')" ] && [ -z "$(ps axf | grep ffmpeg | grep playback_${index} | grep -v grep | awk '{print $6}')" ]; then
             current_parallel_dolphin_path="${path_to_dolphin_temp}/playback_${index}"
             break
         fi
@@ -289,16 +317,14 @@ function set_path_to_parallel_dolphin {
 }
 
 function can_exit {
-    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin): $(ps axf | grep -v grep | grep dolphin-emu)"
-    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (ffmpeg): $(ps axf | grep -v grep | grep ffmpeg)"
-    echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin_jobs) $(head -n 1 dolphin_jobs.txt)"
+    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin): $(ps axf | grep -v grep | grep dolphin-emu)"
+    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (ffmpeg): $(ps axf | grep -v grep | grep ffmpeg)"
+    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin_jobs) $(head -n 1 dolphin_jobs.txt)"
     
     if [ -z "$(ps axf | grep -v grep | grep dolphin-emu)" ] && [ -z "$(ps axf | grep -v grep | grep ffmpeg)" ] && [ -z "$(head -n 1 dolphin_jobs.txt)" ]; then
-        echo -e "\tCAN EXIT"
-        return 0
-    else
-        echo -e "\tCANT EXIT"
         return 1
+    else
+        return 0
     fi
 }
 
@@ -314,19 +340,19 @@ function convert_wav_and_avi_to_mp4 {
 
 function process_slp_files_in_folder {
     local file=$(head -n 1 dolphin_jobs.txt)
-    while [ can_exit ]; do
-        echo -e "\t[${COLOR_YELLOW}OUTER LOOP${COLOR_NONE}]: ${file}"
-
+    while can_exit ; do
         # echo "FILE: ${file}"
-        set_path_to_parallel_dolphin
-        # OR CAN_EXIT
-        while [ ! -z $current_parallel_dolphin_path ]; do
+        
+        # while [ ! -z "$current_parallel_dolphin_path" ]; do
+        while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ] && [ ! -z "$file" ]; do
             echo -e "\t[${COLOR_YELLOW}INNER LOOP${COLOR_NONE}]: ${current_parallel_dolphin_path}"
-            if [ ! -z $file ]; then
-                echo -e "[${COLOR_GREEN}File Recording - Init Start${COLOR_NONE}]"
-                record_file "${path_to_slp_files}/${file}" $current_parallel_dolphin_path &
-                echo -e "\t[${COLOR_YELLOW}File Recording - Init Start${COLOR_NONE}]: ${current_parallel_dolphin_path}"
-            fi
+            # if [ ! -z "$file" ] && [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ]; then
+            echo -e "[${COLOR_GREEN}File Recording - Init Start${COLOR_NONE}]"
+            record_file "${path_to_slp_files}/${file}" $current_parallel_dolphin_path &
+            echo -e "\t[${COLOR_YELLOW}File Recording - Init Start${COLOR_NONE}]: ${current_parallel_dolphin_path}"
+            local base_file_name=$(basename $file)
+            sed -i "\:$base_file_name:d" dolphin_jobs.txt
+            # fi
 
 
             sleep 5s
@@ -343,29 +369,8 @@ function process_slp_files_in_folder {
             done
             echo -e "\n"
 
-
-            # ## Wait for dolphin to be up
-            # sleep 5s
-            # local dolphin_counter=0
-            # # Wait for dolphin to be killed
-            # while [ ! -z "$(ps axf | grep -v grep | grep dolphin-emu)" ]; do
-            #     echo -ne "\t[${COLOR_GREEN}File Recording - Dump Dolphin Frames${COLOR_NONE}]: running for ${COLOR_BLUE}${dolphin_counter}s${COLOR_NONE}\r"
-            #     sleep 5s
-            #     dolphin_counter=$((dolphin_counter + 5))
-            # done
-            # echo -e "\n"
-
-            # sleep 5s
-            # local ffmpeg_counter=0
-            # # Wait for FFmpeg to be complete
-            # while [ ! -z "$(ps axf | grep -v grep | grep ffmpeg)" ]; do
-            #     echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: running for ${COLOR_BLUE}${ffmpeg_counter}s${COLOR_NONE}\r"
-            #     sleep 5s
-            #     ffmpeg_counter=$((ffmpeg_counter + 5))
-            # done
-            # echo -e "\n"
-
             local file=$(head -n 1 dolphin_jobs.txt)
+            set_path_to_parallel_dolphin
         done
 
         local file=$(head -n 1 dolphin_jobs.txt)
