@@ -28,3 +28,9 @@ Refactor to use Parallel
 Specify config on command line for Dolphin so we dont have to create and keep track of which dolphin directory it's going in
     maybe not possible due to slippi-desktop-app opening dolphin
     cut out slippi desktoip app
+
+
+Create Installer script
+
+Command Line prompt for settings
+Pass args in via command line than settings file
