@@ -18,10 +18,31 @@ COLOR_YELLOW='\033[0;33m'
 COLOR_NONE='\033[0m'
 
 
+function create_log {
+    local log=$1
+    local this_log_level= $2
+
+    if [ $this_log_level=="error" ] && [ _log_level=="error" ]; then
+        echo -e ${log}
+        return
+    fi
+
+    if [ $this_log_level == "warn" ] && [ _log_level=="warn" ]; then
+        echo -e ${log}
+        return
+    fi
+
+    if [ $this_log_level == "info" ] && [ _log_level=="info" ]; then
+        echo -e ${log}
+        return
+    fi
+
+}
+
 function validate_and_set_settings {
     path_to_slp_files=$(jq -r .path_to_slp_files $(pwd)/settings/settings.json)
     if [[ $path_to_slp_files = null ]]; then
-        echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slp_files)"
+        create_log "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slp_files)" "error"
         exit 1
     fi
 
@@ -65,6 +86,12 @@ function validate_and_set_settings {
     if [[ $resolution_scale_factor = null ]]; then
         echo -e "\t[${COLOR_YELLOW}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - resolution_scale_factor), defaulting to ${COLOR_BLUE}2${COLOR_NONE}"
         resolution_scale_factor="2"
+    fi
+
+    _log_level=$(jq -r .log_level $(pwd)/settings/settings.json)
+    if [[ $_log_level = null ]]; then
+        echo -e "\t[${COLOR_YELLOW}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - log_level), defaulting to ${COLOR_BLUE}warn${COLOR_NONE}"
+        _log_level="warn"
     fi
 
     if [[ ! -f "$(pwd)/settings/dolphin_settings.ini" ]]; then
@@ -132,9 +159,24 @@ function init {
     rm -rf temp
     mkdir temp
 
-    ls ${path_to_slp_files} | grep slp > temp/dolphin_jobs.txt
-    echo -e "\t[${COLOR_GREEN}Job List Created${COLOR_NONE}]: Created temp/dolphin_jobs.txt (a list of slp files to record)"
- 
+    ls ${path_to_slp_files} | grep slp > temp/recording_jobs.txt
+    # ls -l ${path_to_slp_files}/*.slp | awk '{print "record_file "$9}' > temp/recording_jobs.txt
+    cat temp/recording_jobs.txt
+    # sed -e 's/^/record_file /'  temp/recording_jobs.txt
+    echo -e "\t[${COLOR_GREEN}Recording List Created${COLOR_NONE}]: Created temp/recording_jobs.txt (a list of slp files to record)" 
+
+    export -f create_log
+    export -f validate_and_set_settings
+    export -f clean_dump_dir
+    export -f set_slippi_desktop_app_parallel_dolphin_bin
+    export -f set_frames_in_slippi_file
+    export -f record_file
+    export -f set_video_filter
+    export -f ini_replace
+    export -f set_path_to_parallel_dolphin
+    export -f can_exit
+    export -f convert_wav_and_avi_to_mp4
+
     set_video_filter
  
     echo -e "[${COLOR_GREEN}Script Init - Complete${COLOR_NONE}]\n"
@@ -179,8 +221,11 @@ function set_frames_in_slippi_file {
 }
 
 function record_file {
+    set_path_to_parallel_dolphin
     local slp_file=$1
-    local dolphin_path=$2
+    # local dolphin_path=$2
+    local dolphin_path=$current_parallel_dolphin_path
+    echo -e "\n\nDOLHINPATH: ${dolphin_path}"
     local frames_file="${dolphin_path}/User/Logs/render_time.txt"
     local dump_folder="${dolphin_path}/User/Dump"
 
@@ -302,8 +347,8 @@ function init_parallelism {
         ini_replace "${path_to_dolphin_temp}/playback_${index}"
     done
 
-    set_path_to_parallel_dolphin
-    echo -e "\t[${COLOR_GREEN}Init Parallelism${COLOR_NONE}]: Parallel Dolphin Playback path set to ${current_parallel_dolphin_path}"
+    # set_path_to_parallel_dolphin
+    # echo -e "\t[${COLOR_GREEN}Init Parallelism${COLOR_NONE}]: Parallel Dolphin Playback path initially set to ${current_parallel_dolphin_path}"
     echo -e "[${COLOR_GREEN}Init Parallelism - Finish${COLOR_NONE}]\n"
 }
 
@@ -322,9 +367,9 @@ function set_path_to_parallel_dolphin {
 function can_exit {
     # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin): $(ps axf | grep -v grep | grep dolphin-emu)"
     # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (ffmpeg): $(ps axf | grep -v grep | grep ffmpeg)"
-    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin_jobs) $(head -n 1 temp/dolphin_jobs.txt)"
+    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin_jobs) $(head -n 1 temp/recording_jobs.txt)"
     
-    if [ -z "$(ps axf | grep -v grep | grep dolphin-emu)" ] && [ -z "$(ps axf | grep -v grep | grep ffmpeg)" ] && [ -z "$(head -n 1 temp/dolphin_jobs.txt)" ]; then
+    if [ -z "$(ps axf | grep -v grep | grep dolphin-emu)" ] && [ -z "$(ps axf | grep -v grep | grep ffmpeg)" ] && [ -z "$(head -n 1 temp/recording_jobs.txt)" ]; then
         return 1
     else
         return 0
@@ -342,35 +387,41 @@ function convert_wav_and_avi_to_mp4 {
 }
 
 function process_slp_files_in_folder {
-    local file=$(head -n 1 temp/dolphin_jobs.txt)
-    while can_exit ; do
-        while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ] && [ ! -z "$file" ]; do
-            # echo -e "\t[${COLOR_YELLOW}INNER LOOP${COLOR_NONE}]: ${current_parallel_dolphin_path}"
-            echo -e "[${COLOR_GREEN}File Recording - Init Start${COLOR_NONE}]"
-            record_file "${path_to_slp_files}/${file}" $current_parallel_dolphin_path &
-            local base_file_name=$(basename $file)
-            sed -i "\:$base_file_name:d" temp/dolphin_jobs.txt
+    # local file=$(head -n 1 temp/recording_jobs.txt)
 
-            sleep 5s
-            local counter=0
-            while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -eq $parallelism ]; do
-                if [ ! -z "$(ps axf |  grep -v grep | grep dolphin-emu)" ]; then
-                    echo -ne "\t[${COLOR_GREEN}File Recording - Dump Dolphin Frames${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c dolphin-emu)${COLOR_NONE} Dolphin Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
-                fi
-                if [ ! -z "$(ps axf |  grep -v grep | grep ffmpeg)" ]; then
-                    echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c ffmpeg)${COLOR_NONE} FFmpeg Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
-                fi
-                counter=$((counter + 1))
-                sleep 1s
-            done
-            echo -e "\n"
+    cat temp/recording_jobs.txt
 
-            local file=$(head -n 1 temp/dolphin_jobs.txt)
-            set_path_to_parallel_dolphin
-        done
+    parallel --ungroup -k --jobs $parallelism --xapply record_file < temp/recording_jobs.txt
 
-        local file=$(head -n 1 temp/dolphin_jobs.txt)
-    done
+
+    # while can_exit ; do
+    #     while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ] && [ ! -z "$file" ]; do
+    #         # echo -e "\t[${COLOR_YELLOW}INNER LOOP${COLOR_NONE}]: ${current_parallel_dolphin_path}"
+    #         echo -e "[${COLOR_GREEN}File Recording - Init Start${COLOR_NONE}]"
+    #         record_file "${path_to_slp_files}/${file}" $current_parallel_dolphin_path &
+    #         local base_file_name=$(basename $file)
+    #         sed -i "\:$base_file_name:d" temp/recording_jobs.txt
+
+    #         sleep 5s
+    #         local counter=0
+    #         while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -eq $parallelism ]; do
+    #             if [ ! -z "$(ps axf |  grep -v grep | grep dolphin-emu)" ]; then
+    #                 echo -ne "\t[${COLOR_GREEN}File Recording - Dump Dolphin Frames${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c dolphin-emu)${COLOR_NONE} Dolphin Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
+    #             fi
+    #             if [ ! -z "$(ps axf |  grep -v grep | grep ffmpeg)" ]; then
+    #                 echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c ffmpeg)${COLOR_NONE} FFmpeg Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
+    #             fi
+    #             counter=$((counter + 1))
+    #             sleep 1s
+    #         done
+    #         echo -e "\n"
+
+    #         local file=$(head -n 1 temp/recording_jobs.txt)
+    #         set_path_to_parallel_dolphin
+    #     done
+
+    #     local file=$(head -n 1 temp/recording_jobs.txt)
+    # done
 
 
     echo -e "[${COLOR_GREEN}Script Complete${COLOR_NONE}]: Exiting Successfully"
