@@ -51,6 +51,7 @@ function validate_and_set_settings {
         echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - output_dir)"
         exit 1
     fi
+    export output_dir=$output_dir
 
     path_to_dolphin_base=$(jq -r .path_to_dolphin_base $(pwd)/settings/settings.json)
     if [[ $path_to_dolphin_base = null ]]; then
@@ -63,24 +64,28 @@ function validate_and_set_settings {
         echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_dolphin_temp)"
         exit
     fi
+    export path_to_dolphin_temp=$path_to_dolphin_temp
 
     path_to_slippi_desktop_app=$(jq -r .path_to_slippi_desktop_app $(pwd)/settings/settings.json)
     if [[ $path_to_slippi_desktop_app = null ]]; then
         echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slippi_desktop_app)"
         exit 1
     fi
+    export path_to_slippi_desktop_app=$path_to_slippi_desktop_app
 
     path_to_slippi_desktop_app_data_dir=$(jq -r .path_to_slippi_desktop_app_data_dir $(pwd)/settings/settings.json)
     if [[ $path_to_slippi_desktop_app_data_dir = null ]]; then
         echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slippi_desktop_app_data_dir)"
         exit 1
     fi
+    export path_to_slippi_desktop_app_data_dir=$path_to_slippi_desktop_app_data_dir
 
     parallelism=$(jq -r .parallelism $(pwd)/settings/settings.json)
     if [[ $parallelism = null ]]; then
         echo -e "\t[${COLOR_YELLOW}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - parallelism, defaulting to ${COLOR_BLUE}1${COLOR_NONE})"
         parallelism="1"
     fi
+    export parallelism=$parallelism
 
     resolution_scale_factor=$(jq -r .resolution_scale_factor $(pwd)/settings/settings.json)
     if [[ $resolution_scale_factor = null ]]; then
@@ -159,9 +164,8 @@ function init {
     rm -rf temp
     mkdir temp
 
-    ls ${path_to_slp_files} | grep slp > temp/recording_jobs.txt
+    find ${path_to_slp_files} -name *.slp > temp/recording_jobs.txt
     # ls -l ${path_to_slp_files}/*.slp | awk '{print "record_file "$9}' > temp/recording_jobs.txt
-    cat temp/recording_jobs.txt
     # sed -e 's/^/record_file /'  temp/recording_jobs.txt
     echo -e "\t[${COLOR_GREEN}Recording List Created${COLOR_NONE}]: Created temp/recording_jobs.txt (a list of slp files to record)" 
 
@@ -328,7 +332,8 @@ function set_video_filter {
             exit 1
             ;;
     esac
-    echo -e "\t[${COLOR_GREEN}FFmpeg Filter Set ${COLOR_NONE}]: to ${COLOR_BLUE}${log_resolution}${COLOR_NONE}"
+    export video_filter=$video_filter
+    echo -e "\t[${COLOR_GREEN}FFmpeg Filter Set${COLOR_NONE}]: to ${COLOR_BLUE}${log_resolution}${COLOR_NONE}"
 }
 
 function ini_replace {
@@ -353,14 +358,18 @@ function init_parallelism {
 }
 
 function set_path_to_parallel_dolphin {
-    for ((index=1;index<=$parallelism;index++)); do
-        # echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
+    for ((index=1;index<=${parallelism};index++)); do
+        echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
         if [ -z "$(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')" ] && [ -z "$(ps axf | grep ffmpeg | grep playback_${index} | grep -v grep | awk '{print $6}')" ]; then
             current_parallel_dolphin_path="${path_to_dolphin_temp}/playback_${index}"
             break
         fi
         current_parallel_dolphin_path=""
     done
+
+    if [ -z $current_parallel_dolphin_path ]; then
+        echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Could not set current dolphin path"
+    fi
     
 }
 
@@ -380,20 +389,22 @@ function convert_wav_and_avi_to_mp4 {
     local avi_file=$1
     local wav_file=$2
     local output_file_name=$3
+    echo -e "\n\nHERE"
+    echo $avi_file
+    echo $wav_file
+    echo ${output_dir}/$output_file_name
+    which ffmpeg
 
     echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
-    ffmpeg -loglevel panic -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${output_file_name}.mp4"
+    ffmpeg  -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${output_file_name}.mp4"
     echo -e "[${COLOR_GREEN}Combine Audio and Video - Finish${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
 }
 
 function process_slp_files_in_folder {
+    parallel --delay 5 --env parallelism --ungroup -k --jobs 2 record_file {} < temp/recording_jobs.txt
+
+
     # local file=$(head -n 1 temp/recording_jobs.txt)
-
-    cat temp/recording_jobs.txt
-
-    parallel --ungroup -k --jobs $parallelism --xapply record_file < temp/recording_jobs.txt
-
-
     # while can_exit ; do
     #     while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ] && [ ! -z "$file" ]; do
     #         # echo -e "\t[${COLOR_YELLOW}INNER LOOP${COLOR_NONE}]: ${current_parallel_dolphin_path}"
