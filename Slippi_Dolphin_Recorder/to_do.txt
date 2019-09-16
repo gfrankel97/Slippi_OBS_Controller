@@ -34,3 +34,5 @@ Create Installer script
 
 Command Line prompt for settings
 Pass args in via command line than settings file
+
+Concat Videos into sets
