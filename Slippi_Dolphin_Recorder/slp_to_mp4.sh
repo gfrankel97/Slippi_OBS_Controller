@@ -356,7 +356,7 @@ function convert_wav_and_avi_to_mp4 {
         sleep 1s
     done
     local counter=$(($SECONDS-$start_counter))
-    echo -e "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Combining AVI and WAV from Dolphin dump for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
+    echo -e "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Combining AVI and WAV from Dolphin dump for: ${COLOR_BLUE}${counter}s${COLOR_NONE}"
 }
 
 function process_slp_files_in_folder {
