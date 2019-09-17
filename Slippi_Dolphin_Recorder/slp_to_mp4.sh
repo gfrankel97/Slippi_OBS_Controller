@@ -282,13 +282,13 @@ function record_file {
             cat $frames_file
         fi
 
-        local counter=$(($SECONDS-$start_counter))
-        # echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Dumping Slippi file to AVI for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
         #Timeout loop after 8 minutes
         if [ $SECONDS -gt $timeout ]; then
             break
         fi
     done
+    local counter=$(($SECONDS-$start_counter))
+    echo -e "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Dumping Slippi file to AVI for: ${COLOR_BLUE}${counter}s${COLOR_NONE}"
 
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path | awk '{print $1}')
     kill -9 $dolphin_process | at now &> /dev/null
@@ -331,7 +331,7 @@ function ini_replace {
     local path_to_instance=$1
     local path_to_instance_dolphin_dump="${path_to_instance}/User/Dump"
     echo -e "\t[${COLOR_GREEN}Settings Replace - Start${COLOR_NONE}]:  ${path_to_instance}/User/Config/Dolphin.ini"
-    sed -i.bak "s@DumpPath = .*@DumpPath = $path_to_instance_dolphin_dump@" "${path_to_instance}/User/Config/Dolphin.ini"
+    sed -i".bak" "s@DumpPath = .*@DumpPath = $path_to_instance_dolphin_dump@" "${path_to_instance}/User/Config/Dolphin.ini"
     echo -e "\t[${COLOR_GREEN}Settings Replace - Finish${COLOR_NONE}]: ${path_to_instance}/User/Config/Dolphin.ini"
 }
 
