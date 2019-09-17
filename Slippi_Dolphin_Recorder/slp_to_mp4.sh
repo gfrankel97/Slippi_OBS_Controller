@@ -239,13 +239,17 @@ function record_file {
     # Launch slippi desktop app so it will launch dolphin, then kill slippi desktop app
     clean_dump_dir $dolphin_path
     set_slippi_desktop_app_parallel_dolphin_bin $dolphin_path
-    $path_to_slippi_desktop_app $slp_file | at now &> /dev/null & sleep 5s
+    
+    #Done to hide annoying slippi desktop app output
+    $path_to_slippi_desktop_app $slp_file > /dev/null 2>&1 & sleep 5
     local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
     while [ -z $slippi_desktop_app_process ]; do
         sleep 1s
         slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | grep $slp_file | awk 'NR==1{print $1}')
     done
-    kill -9 $slippi_desktop_app_process | at now &> /dev/null
+    # kill -9 $slippi_desktop_app_process > /dev/null 2>&1
+    kill $!
+    wait $! 2>/dev/null
 
     # Wait for the render_time.txt file to be created by dolphin
     while ! test -f $frames_file; do 
@@ -291,7 +295,7 @@ function record_file {
     echo -e "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Dumping Slippi file to AVI for: ${COLOR_BLUE}${counter}s${COLOR_NONE}"
 
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path | awk '{print $1}')
-    kill -9 $dolphin_process | at now &> /dev/null
+    $(kill -9 $dolphin_process > /dev/null 2>&1)
 
     local current_avi_file="${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)"
     local current_audio_file_wav="${dump_folder}/Audio/dspdump.wav"
@@ -348,7 +352,6 @@ function init_parallelism {
 
 function set_path_to_parallel_dolphin {
     for ((index=1;index<=${parallelism};index++)); do
-        # echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
         if [ -z "$(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')" ] && [ -z "$(ps axf | grep ffmpeg | grep playback_${index} | grep -v grep | awk '{print $6}')" ]; then
             current_parallel_dolphin_path="${path_to_dolphin_temp}/playback_${index}"
             break
@@ -378,7 +381,7 @@ function convert_wav_and_avi_to_mp4 {
 }
 
 function process_slp_files_in_folder {
-    parallel --delay 5 --env parallelism --group -k --jobs $parallelism record_file {} < temp/recording_jobs.txt
+    parallel --delay 5 --env parallelism --ungroup --jobs $parallelism record_file {} < temp/recording_jobs.txt
 }
 
 
