@@ -165,9 +165,8 @@ function init {
     mkdir temp
 
     find ${path_to_slp_files} -name *.slp > temp/recording_jobs.txt
-    # ls -l ${path_to_slp_files}/*.slp | awk '{print "record_file "$9}' > temp/recording_jobs.txt
-    # sed -e 's/^/record_file /'  temp/recording_jobs.txt
-    echo -e "\t[${COLOR_GREEN}Recording List Created${COLOR_NONE}]: Created temp/recording_jobs.txt (a list of slp files to record)" 
+    echo -e "\t[${COLOR_GREEN}Recording List Created${COLOR_NONE}]: Created temp/recording_jobs.txt (a list of slp files to record):"
+    sed "s:^:\t\t:" temp/recording_jobs.txt
 
     export -f create_log
     export -f validate_and_set_settings
@@ -178,7 +177,6 @@ function init {
     export -f set_video_filter
     export -f ini_replace
     export -f set_path_to_parallel_dolphin
-    export -f can_exit
     export -f convert_wav_and_avi_to_mp4
 
     set_video_filter
@@ -219,8 +217,6 @@ function set_frames_in_slippi_file {
     local frame_count="$((16#$a * 256 + 16#$b))"
     local d="$((10 + $frame_count / 60))"
 
-    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Got number of frames (${frame_count}) in Slippi File: ${slp_file}"
-
     current_slippi_file_length=$frame_count
 }
 
@@ -228,7 +224,6 @@ function record_file {
     global_start_counter=$SECONDS
     set_path_to_parallel_dolphin
     local slp_file=$1
-    # local dolphin_path=$2
     local dolphin_path=$current_parallel_dolphin_path
     local frames_file="${dolphin_path}/User/Logs/render_time.txt"
     local dump_folder="${dolphin_path}/User/Dump"
@@ -243,12 +238,7 @@ function record_file {
 
     # Launch slippi desktop app so it will launch dolphin, then kill slippi desktop app
     clean_dump_dir $dolphin_path
-    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Output and Temp directories cleaned successfully"
-    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Parallel Dolphin Playback path set to ${current_parallel_dolphin_path}"
     set_slippi_desktop_app_parallel_dolphin_bin $dolphin_path
-    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Slippi Desktop App set to use: ${current_parallel_dolphin_path}"
-    # echo -e "[${COLOR_GREEN}File Recording - Init Finish${COLOR_NONE}]\n"
-    # echo -e "[${COLOR_GREEN}File Recording - Start${COLOR_NONE}]: ${COLOR_BLUE}${file}${COLOR_NONE}"
     $path_to_slippi_desktop_app $slp_file | at now &> /dev/null & sleep 5s
     local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
     while [ -z $slippi_desktop_app_process ]; do
@@ -300,12 +290,9 @@ function record_file {
         fi
     done
 
-    # echo -e "\n[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${file}\n"
-
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path | awk '{print $1}')
     kill -9 $dolphin_process | at now &> /dev/null
 
-    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Killing dolphin: $(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path)"
     local current_avi_file="${dump_folder}/Frames/$(ls -t ${dump_folder}/Frames/ | head -1)"
     local current_audio_file_wav="${dump_folder}/Audio/dspdump.wav"
     local base_file_name=$(basename $slp_file)
@@ -375,38 +362,23 @@ function set_path_to_parallel_dolphin {
     
 }
 
-function can_exit {
-    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin): $(ps axf | grep -v grep | grep dolphin-emu)"
-    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (ffmpeg): $(ps axf | grep -v grep | grep ffmpeg)"
-    # echo -e "\t[${COLOR_YELLOW}DEBUG${COLOR_NONE}]:  Can Exit (dolphin_jobs) $(head -n 1 temp/recording_jobs.txt)"
-    
-    if [ -z "$(ps axf | grep -v grep | grep dolphin-emu)" ] && [ -z "$(ps axf | grep -v grep | grep ffmpeg)" ] && [ -z "$(head -n 1 temp/recording_jobs.txt)" ]; then
-        return 1
-    else
-        return 0
-    fi
-}
-
 function convert_wav_and_avi_to_mp4 {
     local avi_file=$1
     local wav_file=$2
     local output_file_name=$3
 
-    # echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
     ffmpeg -loglevel panic -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${output_file_name}.mp4" &
     local ffmpeg_pid=$!
     local start_counter=$SECONDS
     while kill -0 $ffmpeg_pid &> /dev/null; do
-        local counter=$(($SECONDS-$start_counter))
-        echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Combining AVI and WAV from Dolphin dump for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
         sleep 1s
     done
-    # echo -e "\n[${COLOR_GREEN}Combine Audio and Video - Finish${COLOR_NONE}]: Combined AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
-    # echo -e "[${COLOR_GREEN}File Conversion - Finish${COLOR_NONE}]: ${output_file_name}.mp4 after: $(($global_start_counter-$SECONDS))s"
+    local counter=$(($SECONDS-$start_counter))
+    echo -e "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Combining AVI and WAV from Dolphin dump for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
 }
 
 function process_slp_files_in_folder {
-    parallel --delay 5 --env parallelism --group --jobs $parallelism record_file {} < temp/recording_jobs.txt
+    parallel --delay 5 --env parallelism --group -k --jobs $parallelism record_file {} < temp/recording_jobs.txt
 }
 
 
