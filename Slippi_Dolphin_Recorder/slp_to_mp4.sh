@@ -18,31 +18,10 @@ COLOR_YELLOW='\033[0;33m'
 COLOR_NONE='\033[0m'
 
 
-function create_log {
-    local log=$1
-    local this_log_level= $2
-
-    if [ $this_log_level=="error" ] && [ _log_level=="error" ]; then
-        echo -e ${log}
-        return
-    fi
-
-    if [ $this_log_level == "warn" ] && [ _log_level=="warn" ]; then
-        echo -e ${log}
-        return
-    fi
-
-    if [ $this_log_level == "info" ] && [ _log_level=="info" ]; then
-        echo -e ${log}
-        return
-    fi
-
-}
-
 function validate_and_set_settings {
     path_to_slp_files=$(jq -r .path_to_slp_files $(pwd)/settings/settings.json)
     if [[ $path_to_slp_files = null ]]; then
-        create_log "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slp_files)" "error"
+        echo -e "\t[${COLOR_RED}Setting Missing${COLOR_NONE}]: Setting not found (check settings.json - path_to_slp_files)"
         exit 1
     fi
 

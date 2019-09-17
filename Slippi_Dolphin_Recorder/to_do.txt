@@ -1,9 +1,3 @@
-automatically look for and set Wii IPs in connections
-    nmap -sn 192.168.1.0/24 | grep -i wii
-
-Parallelize
-
-Use dolphin-emu-nogui???
 
 Set Dolphin INI settings based on json file so no user has to edit INI files
     String replacements in dolphin.ini and gfx.ini
@@ -13,11 +7,7 @@ Figure out how to programatically control dolphin internal resolution
 
 More error handling/checking
 
-Improve logging with timers
-
 Filter short games
-
-seconds to minutes conversions on logs
 
 Make recursive through folders and updates names accordingly
     After we get the node script dumping the structure we want
