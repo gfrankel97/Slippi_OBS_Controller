@@ -381,7 +381,7 @@ function convert_wav_and_avi_to_mp4 {
 }
 
 function process_slp_files_in_folder {
-    parallel --delay 5 --env parallelism --ungroup --jobs $parallelism record_file {} < temp/recording_jobs.txt
+    parallel --delay 5 --env parallelism --group -k --jobs $parallelism record_file {} < temp/recording_jobs.txt
 }
 
 
