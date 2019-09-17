@@ -303,7 +303,7 @@ function record_file {
 
     base_file_name=$(echo $base_file_name | cut -d'.' -f1)
     convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_wav $base_file_name
-    echo -e "\t[${COLOR_GREEN}File Recording - Finished${COLOR_NONE}]: ${base_file_name}.mp4"
+    echo -e "\t[${COLOR_GREEN}File Recording - Finished${COLOR_NONE}]: ${base_file_name}.mp4\n"
     
 }
 
