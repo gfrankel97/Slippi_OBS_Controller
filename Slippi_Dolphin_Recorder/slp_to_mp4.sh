@@ -219,17 +219,17 @@ function set_frames_in_slippi_file {
     local frame_count="$((16#$a * 256 + 16#$b))"
     local d="$((10 + $frame_count / 60))"
 
-    echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Got number of frames (${frame_count}) in Slippi File: ${slp_file}"
+    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Got number of frames (${frame_count}) in Slippi File: ${slp_file}"
 
     current_slippi_file_length=$frame_count
 }
 
 function record_file {
+    global_start_counter=$SECONDS
     set_path_to_parallel_dolphin
     local slp_file=$1
     # local dolphin_path=$2
     local dolphin_path=$current_parallel_dolphin_path
-    echo -e "\n\nDOLHINPATH: ${dolphin_path}"
     local frames_file="${dolphin_path}/User/Logs/render_time.txt"
     local dump_folder="${dolphin_path}/User/Dump"
 
@@ -243,14 +243,13 @@ function record_file {
 
     # Launch slippi desktop app so it will launch dolphin, then kill slippi desktop app
     clean_dump_dir $dolphin_path
-    echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Output and Temp directories cleaned successfully"
-    echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Parallel Dolphin Playback path set to ${current_parallel_dolphin_path}"
+    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Output and Temp directories cleaned successfully"
+    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Parallel Dolphin Playback path set to ${current_parallel_dolphin_path}"
     set_slippi_desktop_app_parallel_dolphin_bin $dolphin_path
-    echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Slippi Desktop App set to use: ${current_parallel_dolphin_path}"
-    echo -e "[${COLOR_GREEN}File Recording - Init Finish${COLOR_NONE}]\n"
-    echo -e "[${COLOR_GREEN}File Recording - Start${COLOR_NONE}]: ${COLOR_BLUE}${file}${COLOR_NONE}"
+    # echo -e "\t[${COLOR_GREEN}File Recording - Init${COLOR_NONE}]: Slippi Desktop App set to use: ${current_parallel_dolphin_path}"
+    # echo -e "[${COLOR_GREEN}File Recording - Init Finish${COLOR_NONE}]\n"
+    # echo -e "[${COLOR_GREEN}File Recording - Start${COLOR_NONE}]: ${COLOR_BLUE}${file}${COLOR_NONE}"
     $path_to_slippi_desktop_app $slp_file | at now &> /dev/null & sleep 5s
-    
     local slippi_desktop_app_process=$(ps axf --sort time | grep slippi-desktop-app | grep -v grep | awk 'NR==1{print $1}')
     while [ -z $slippi_desktop_app_process ]; do
         sleep 1s
@@ -267,38 +266,41 @@ function record_file {
 
     local current_frame=$(grep -vc '^$' $frames_file)
     if [ $? -ne 0 ]; then
-        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Problem Current Frame: $current_frame"
+        echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Problem Current Frame: $current_frame"
     fi
 
     local frame_count="$(($frame_count + 298))"
 
     if [ -z "$current_frame" ]; then
-        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Current Frame is empty: $current_frame"
+        echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Current Frame is empty: $current_frame"
     fi
 
     if [ -z "$frame_count" ]; then
-        echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frame Count is empty: $current_frame"
+        echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Frame Count is empty: $current_frame"
     fi
 
     # Run until the number of frames rendered is the length of the slippi file
+    local start_counter=$SECONDS
     local timeout=$((SECONDS+490))
     while [ $current_frame -lt $frame_count ]; do
         if [ ! -f $frames_file ]; then
-            echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frames File does NOT Exist"
+            echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Frames File does NOT Exist"
         fi
         current_frame=$(grep -vc '^$' $frames_file)
         if [ $? -ne 0 ]; then
-            echo -e "\t[${COLOR_RED}DEBUG${COLOR_NONE}]: Frames File's current frames are empty"
+            echo -e "\t[${COLOR_RED}Error${COLOR_NONE}]: Frames File's current frames are empty"
             cat $frames_file
         fi
 
+        local counter=$(($SECONDS-$start_counter))
+        # echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Dumping Slippi file to AVI for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
         #Timeout loop after 8 minutes
         if [ $SECONDS -gt $timeout ]; then
             break
         fi
     done
 
-    echo -e "\n[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${file}\n"
+    # echo -e "\n[${COLOR_GREEN}File Recording - Finish${COLOR_NONE}]: ${file}\n"
 
     local dolphin_process=$(ps axf --sort time | grep dolphin-emu | grep -v grep | grep $dolphin_path | awk '{print $1}')
     kill -9 $dolphin_process | at now &> /dev/null
@@ -310,6 +312,8 @@ function record_file {
 
     base_file_name=$(echo $base_file_name | cut -d'.' -f1)
     convert_wav_and_avi_to_mp4 $current_avi_file $current_audio_file_wav $base_file_name
+    echo -e "\t[${COLOR_GREEN}File Recording - Finished${COLOR_NONE}]: ${base_file_name}.mp4"
+    
 }
 
 function set_video_filter {
@@ -352,14 +356,12 @@ function init_parallelism {
         ini_replace "${path_to_dolphin_temp}/playback_${index}"
     done
 
-    # set_path_to_parallel_dolphin
-    # echo -e "\t[${COLOR_GREEN}Init Parallelism${COLOR_NONE}]: Parallel Dolphin Playback path initially set to ${current_parallel_dolphin_path}"
     echo -e "[${COLOR_GREEN}Init Parallelism - Finish${COLOR_NONE}]\n"
 }
 
 function set_path_to_parallel_dolphin {
     for ((index=1;index<=${parallelism};index++)); do
-        echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
+        # echo -e "\t[${COLOR_YELLOW}Set Parallelism${COLOR_NONE}]: Looking for running dolphin-emu: $(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')"
         if [ -z "$(ps axf | grep playback_${index}/dolphin-emu | grep -v grep | awk '{print $6}')" ] && [ -z "$(ps axf | grep ffmpeg | grep playback_${index} | grep -v grep | awk '{print $6}')" ]; then
             current_parallel_dolphin_path="${path_to_dolphin_temp}/playback_${index}"
             break
@@ -389,59 +391,29 @@ function convert_wav_and_avi_to_mp4 {
     local avi_file=$1
     local wav_file=$2
     local output_file_name=$3
-    echo -e "\n\nHERE"
-    echo $avi_file
-    echo $wav_file
-    echo ${output_dir}/$output_file_name
-    which ffmpeg
 
-    echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
-    ffmpeg  -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${output_file_name}.mp4"
-    echo -e "[${COLOR_GREEN}Combine Audio and Video - Finish${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
+    # echo -e "[${COLOR_GREEN}Combine Audio and Video - Start${COLOR_NONE}]: Combine AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
+    ffmpeg -loglevel panic -y -i ${avi_file} -i ${wav_file} -filter_complex "[0:v]${video_filter}" "${output_dir}/${output_file_name}.mp4" &
+    local ffmpeg_pid=$!
+    local start_counter=$SECONDS
+    while kill -0 $ffmpeg_pid &> /dev/null; do
+        local counter=$(($SECONDS-$start_counter))
+        echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: Combining AVI and WAV from Dolphin dump for: ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
+        sleep 1s
+    done
+    # echo -e "\n[${COLOR_GREEN}Combine Audio and Video - Finish${COLOR_NONE}]: Combined AVI and WAV from Dolphin dump to create output file: ${COLOR_BLUE}${output_dir}/${output_file_name}.mp4${COLOR_NONE}"
+    # echo -e "[${COLOR_GREEN}File Conversion - Finish${COLOR_NONE}]: ${output_file_name}.mp4 after: $(($global_start_counter-$SECONDS))s"
 }
 
 function process_slp_files_in_folder {
-    parallel --delay 5 --env parallelism --ungroup -k --jobs 2 record_file {} < temp/recording_jobs.txt
-
-
-    # local file=$(head -n 1 temp/recording_jobs.txt)
-    # while can_exit ; do
-    #     while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -lt $parallelism ] && [ ! -z "$file" ]; do
-    #         # echo -e "\t[${COLOR_YELLOW}INNER LOOP${COLOR_NONE}]: ${current_parallel_dolphin_path}"
-    #         echo -e "[${COLOR_GREEN}File Recording - Init Start${COLOR_NONE}]"
-    #         record_file "${path_to_slp_files}/${file}" $current_parallel_dolphin_path &
-    #         local base_file_name=$(basename $file)
-    #         sed -i "\:$base_file_name:d" temp/recording_jobs.txt
-
-    #         sleep 5s
-    #         local counter=0
-    #         while [ $(ps axf | grep -v grep | grep -c 'dolphin-emu\|ffmpeg') -eq $parallelism ]; do
-    #             if [ ! -z "$(ps axf |  grep -v grep | grep dolphin-emu)" ]; then
-    #                 echo -ne "\t[${COLOR_GREEN}File Recording - Dump Dolphin Frames${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c dolphin-emu)${COLOR_NONE} Dolphin Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
-    #             fi
-    #             if [ ! -z "$(ps axf |  grep -v grep | grep ffmpeg)" ]; then
-    #                 echo -ne "\t[${COLOR_GREEN}File Recording - Video Encoding${COLOR_NONE}]: ${COLOR_BLUE}$(ps axf |  grep -v grep | grep -c ffmpeg)${COLOR_NONE} FFmpeg Instances running for ${COLOR_BLUE}${counter}s${COLOR_NONE}\r"
-    #             fi
-    #             counter=$((counter + 1))
-    #             sleep 1s
-    #         done
-    #         echo -e "\n"
-
-    #         local file=$(head -n 1 temp/recording_jobs.txt)
-    #         set_path_to_parallel_dolphin
-    #     done
-
-    #     local file=$(head -n 1 temp/recording_jobs.txt)
-    # done
-
-
-    echo -e "[${COLOR_GREEN}Script Complete${COLOR_NONE}]: Exiting Successfully"
+    parallel --delay 5 --env parallelism --group --jobs $parallelism record_file {} < temp/recording_jobs.txt
 }
 
 
 init
 init_parallelism
 process_slp_files_in_folder
+echo -e "[${COLOR_GREEN}Script Complete${COLOR_NONE}]: Exiting Successfully"
 exit 0
 
 
